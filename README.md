@@ -1,2 +1,0 @@
-# PixGram
-A evoluted Instagram!

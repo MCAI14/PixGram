@@ -17,6 +17,45 @@
       align-items: flex-start;
       justify-content: center;
       padding-top: 40px;
+      gap: 32px;
+    }
+    .sidebar-historico {
+      background: #fff;
+      border-radius: 14px;
+      box-shadow: 0 4px 24px rgba(44, 62, 80, 0.08);
+      padding: 24px 18px 18px 18px;
+      width: 220px;
+      min-height: 320px;
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+      gap: 10px;
+    }
+    .sidebar-historico h3 {
+      margin: 0 0 10px 0;
+      font-size: 1.1rem;
+      color: #007bff;
+      text-align: center;
+    }
+    .historico-list {
+      flex: 1;
+      overflow-y: auto;
+      font-size: 0.98rem;
+      color: #222;
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+    }
+    .historico-item {
+      background: #eaf1fb;
+      border-radius: 6px;
+      padding: 7px 10px;
+      cursor: pointer;
+      transition: background 0.2s;
+      word-break: break-all;
+    }
+    .historico-item:hover {
+      background: #d1eaff;
     }
     .chat-container {
       background: #fff;
@@ -35,6 +74,25 @@
       align-items: center;
       gap: 10px;
       margin-bottom: 8px;
+      justify-content: space-between;
+    }
+    .user-info {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .logout-btn {
+      background: #e74c3c;
+      color: #fff;
+      border: none;
+      border-radius: 5px;
+      padding: 5px 12px;
+      font-size: 0.97rem;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .logout-btn:hover {
+      background: #c0392b;
     }
     .chat-type-bar {
       display: flex;
@@ -122,10 +180,18 @@
 </head>
 <body>
   <div class="main-flex">
+    <aside class="sidebar-historico">
+      <h3>Meu Histórico</h3>
+      <div class="historico-list" id="historico-list">
+        <div style="color:#aaa;text-align:center;">Nenhuma mensagem</div>
+      </div>
+    </aside>
     <div class="chat-container">
       <div class="user-bar">
-        <label for="usuario"><strong>Usuário:</strong></label>
-        <input type="text" id="usuario" placeholder="Seu nome" disabled />
+        <div class="user-info">
+          <span id="usuario-nome" style="font-weight:bold;"></span>
+        </div>
+        <button class="logout-btn" onclick="logout()">Sair</button>
       </div>
       <div class="chat-type-bar">
         <button id="btn-publico" onclick="mudarTipo('publico')" class="active">Chat Público</button>
@@ -159,6 +225,26 @@
     let tipo = 'publico';
     let codigoSalaPrivada = null;
     let ultimaChave = null;
+    let usuarioNome = '';
+
+    // Preencher nome do usuário autenticado
+    auth.onAuthStateChanged(user => {
+      if (user) {
+        db.ref('users/' + user.uid + '/name').once('value').then(snapshot => {
+          usuarioNome = snapshot.val() || user.email;
+          document.getElementById('usuario-nome').textContent = usuarioNome;
+          document.getElementById('usuario').value = usuarioNome;
+          carregarHistoricoUsuario();
+        });
+      } else {
+        window.location.href = "login/index.html";
+      }
+    });
+
+    function logout() {
+      auth.signOut();
+      window.location.href = "login/index.html";
+    }
 
     // Botões de seleção de chat
     function mudarTipo(novoTipo) {
@@ -169,16 +255,13 @@
       document.getElementById('sala-info').textContent = '';
       if (tipo === 'privado') {
         document.getElementById('btn-privado').classList.add('active');
-        // Pergunta se quer criar ou entrar numa sala privada
         const acao = prompt("Digite '1' para criar uma sala privada ou '2' para entrar numa sala existente:");
         if (acao === '1') {
-          // Criar sala: gera código aleatório
           codigoSalaPrivada = Math.random().toString(36).substring(2, 8).toUpperCase();
           alert("Código da sua sala privada: " + codigoSalaPrivada + "\nGuarde este código para partilhar com outros.");
           document.getElementById('sala-info').textContent = "Sala privada: " + codigoSalaPrivada;
           salvarSalaNoHistorico(codigoSalaPrivada);
         } else if (acao === '2') {
-          // Entrar numa sala existente
           codigoSalaPrivada = prompt("Digite o código da sala privada:");
           if (!codigoSalaPrivada) {
             tipo = 'publico';
@@ -239,7 +322,8 @@
         const chatDiv = document.getElementById('chat');
         chatDiv.innerHTML = '';
         let chaves = Object.keys(mensagens);
-        const usuarioAtual = document.getElementById('usuario').value || 'Anônimo';
+        const usuarioAtual = usuarioNome || document.getElementById('usuario').value || 'Anônimo';
+        let historicoPessoal = [];
         chaves.filter(k => {
           const m = mensagens[k];
           if (tipo === 'publico') return m.tipo === 'publico';
@@ -257,13 +341,20 @@
           const minhaMsg = m.usuario === usuarioAtual ? 'minha-msg' : '';
           const hora = m.timestamp ? new Date(m.timestamp).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : '';
           chatDiv.innerHTML += `<div class="msg ${m.tipo} ${minhaMsg}"><strong>${m.usuario}</strong> <span style="color:#aaa;font-size:12px;">${hora}</span>: ${m.msg}</div>`;
+          // Salvar no histórico pessoal se for minha mensagem
+          if (m.usuario === usuarioAtual) {
+            historicoPessoal.push({ msg: m.msg, hora });
+          }
         });
+
+        // Atualiza histórico pessoal na sidebar e no banco
+        atualizarHistoricoSidebar(historicoPessoal);
+        salvarHistoricoUsuario(historicoPessoal);
 
         // Notificar se chegou mensagem nova da sala correta e de outro usuário
         if (chaves.length > 0) {
           const ultimaKey = chaves[chaves.length - 1];
           const ultimaMsg = mensagens[ultimaKey];
-          const usuarioAtual = document.getElementById('usuario').value || 'Anônimo';
           const mesmaSala =
             (tipo === 'publico' && ultimaMsg.tipo === 'publico') ||
             (tipo === 'privado' && ultimaMsg.tipo === 'privado' && ultimaMsg.sala === codigoSalaPrivada) ||
@@ -283,12 +374,44 @@
       });
     }
 
+    function atualizarHistoricoSidebar(historico) {
+      const list = document.getElementById('historico-list');
+      list.innerHTML = '';
+      if (!historico.length) {
+        list.innerHTML = '<div style="color:#aaa;text-align:center;">Nenhuma mensagem</div>';
+        return;
+      }
+      historico.slice(-20).reverse().forEach(item => {
+        const div = document.createElement('div');
+        div.className = 'historico-item';
+        div.textContent = `[${item.hora}] ${item.msg}`;
+        list.appendChild(div);
+      });
+    }
+
+    function salvarHistoricoUsuario(historico) {
+      const user = auth.currentUser;
+      if (user) {
+        db.ref('users/' + user.uid + '/historico').set(historico.slice(-20));
+      }
+    }
+
+    function carregarHistoricoUsuario() {
+      const user = auth.currentUser;
+      if (user) {
+        db.ref('users/' + user.uid + '/historico').once('value').then(snapshot => {
+          const historico = snapshot.val() || [];
+          atualizarHistoricoSidebar(historico);
+        });
+      }
+    }
+
     // Palavras proibidas
     const proibidas = ["foda-se", "filho da puta", "merda", "caralho", "puta"];
 
     // Enviar mensagem
     document.getElementById('enviar').onclick = function() {
-      const usuario = document.getElementById('usuario').value || 'Anônimo';
+      const usuario = usuarioNome || document.getElementById('usuario').value || 'Anônimo';
       const msg = document.getElementById('mensagem').value.trim();
       if (!msg) return;
 
@@ -339,21 +462,11 @@
         if (salas.length > 10) salas = salas.slice(0, 10); // Limite de 10 salas
         localStorage.setItem('salasHistorico', JSON.stringify(salas));
       }
-      mostrarSalasHistorico();
-    }
-
-    function mostrarSalasHistorico() {
-      // Função opcional, pode ser removida se não usar lista de salas recentes
+      // mostrarSalasHistorico(); // opcional
     }
 
     // Chame ao carregar a página
     document.addEventListener('DOMContentLoaded', function() {
-      // Preencher nome do usuário autenticado se disponível
-      auth.onAuthStateChanged(user => {
-        if (user) {
-          document.getElementById('usuario').value = user.email || "Anônimo";
-        }
-      });
       carregarMensagens();
     });
   </script>

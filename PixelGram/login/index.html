@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Login - PixelGram</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      background: #f4f6fb;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+      justify-content: center;
+    }
+    .login-container {
+      background: #fff;
+      border-radius: 16px;
+      box-shadow: 0 4px 24px rgba(44, 62, 80, 0.08);
+      padding: 32px 24px 24px 24px;
+      width: 100%;
+      max-width: 340px;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+      align-items: center;
+    }
+    .login-container h2 {
+      color: #2d3a4b;
+      margin: 0 0 12px 0;
+      font-size: 1.6rem;
+      letter-spacing: 1px;
+    }
+    .login-container input {
+      width: 100%;
+      border: 1px solid #d1d5db;
+      border-radius: 6px;
+      padding: 8px 12px;
+      font-size: 15px;
+      outline: none;
+      transition: border 0.2s;
+      margin-bottom: 10px;
+    }
+    .login-container input:focus {
+      border: 1.5px solid #3498db;
+    }
+    .login-container button {
+      width: 100%;
+      background: #3498db;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      padding: 10px 0;
+      font-size: 16px;
+      cursor: pointer;
+      transition: background 0.2s;
+      margin-bottom: 8px;
+    }
+    .login-container button:last-child {
+      background: #888;
+    }
+    .login-container button:hover {
+      background: #217dbb;
+    }
+    .login-container .anon-btn:hover {
+      background: #555;
+    }
+    .login-container .error {
+      color: #e74c3c;
+      font-size: 14px;
+      margin-bottom: 8px;
+      text-align: center;
+    }
+  </style>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+</head>
+<body>
+  <div class="login-container">
+    <h2>PixelGram Login</h2>
+    <div id="login-form">
+      <input type="email" id="login-email" placeholder="Email" />
+      <input type="password" id="login-password" placeholder="Senha" />
+      <button onclick="login()">Entrar</button>
+      <button onclick="showRegister()">Criar Conta</button>
+      <button class="anon-btn" onclick="loginAnon()">Entrar como Anônimo</button>
+      <div id="login-error" class="error"></div>
+    </div>
+    <div id="register-form" style="display:none;">
+      <input type="email" id="register-email" placeholder="Email" />
+      <input type="password" id="register-password" placeholder="Senha" />
+      <button onclick="register()">Inscrever</button>
+      <button onclick="hideRegister()" style="background:#888;">Cancelar</button>
+      <div id="register-error" class="error"></div>
+    </div>
+    <div id="user-info" style="display:none;">
+      <span id="user-email"></span>
+      <button onclick="logout()">Sair</button>
+    </div>
+  </div>
+  <script>
+    // Configurações do seu Firebase
+    const firebaseConfig = {
+      apiKey: "AIzaSyBEesXKUPQibsTXT48pQmL0yfOEHNwE85I",
+      authDomain: "pixelgram-fd1bf.firebaseapp.com",
+      databaseURL: "https://pixelgram-fd1bf-default-rtdb.firebaseio.com",
+      projectId: "pixelgram-fd1bf",
+      storageBucket: "pixelgram-fd1bf.firebasestorage.app",
+      messagingSenderId: "526005169331",
+      appId: "1:526005169331:web:7717c5a46a653e1ddc14c6",
+      measurementId: "G-B97XPZM2FN"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+
+    function login() {
+      const email = document.getElementById('login-email').value;
+      const password = document.getElementById('login-password').value;
+      auth.signInWithEmailAndPassword(email, password)
+        .catch(e => {
+          document.getElementById('login-error').textContent = 'Erro: ' + e.message;
+        });
+    }
+
+    function loginAnon() {
+      auth.signInAnonymously()
+        .catch(e => {
+          document.getElementById('login-error').textContent = 'Erro: ' + e.message;
+        });
+    }
+
+    function logout() {
+      auth.signOut();
+    }
+
+    function showRegister() {
+      document.getElementById('login-form').style.display = 'none';
+      document.getElementById('register-form').style.display = '';
+    }
+
+    function hideRegister() {
+      document.getElementById('register-form').style.display = 'none';
+      document.getElementById('login-form').style.display = '';
+      document.getElementById('register-error').textContent = '';
+    }
+
+    function register() {
+      const email = document.getElementById('register-email').value;
+      const password = document.getElementById('register-password').value;
+      auth.createUserWithEmailAndPassword(email, password)
+        .catch(e => {
+          document.getElementById('register-error').textContent = 'Erro: ' + e.message;
+        });
+    }
+
+    auth.onAuthStateChanged(user => {
+      if (user) {
+        document.getElementById('login-form').style.display = 'none';
+        document.getElementById('register-form').style.display = 'none';
+        document.getElementById('user-info').style.display = '';
+        document.getElementById('user-email').textContent = user.email || "Usuário Anônimo";
+        // Redireciona para a home do chat após login
+        setTimeout(() => {
+          window.location.href = "../index.html";
+        }, 800);
+      } else {
+        document.getElementById('login-form').style.display = '';
+        document.getElementById('register-form').style.display = 'none';
+        document.getElementById('user-info').style.display = 'none';
+        document.getElementById('login-error').textContent = '';
+      }
+    });
+  </script>
+</body>
+</html>

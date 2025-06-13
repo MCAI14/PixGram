@@ -180,10 +180,16 @@
       background: #3498db;
       color: #fff;
     }
+    .minha-msg {
+      background: #d1e7dd;
+      color: #0f5132;
+      align-self: flex-end;
+    }
   </style>
   <!-- Adicione os scripts do Firebase -->
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
 </head>
 <body>
   <h1>Comunidade - Chat</h1>
@@ -200,6 +206,7 @@
       <div class="chat-type-bar">
         <button id="btn-publico" onclick="mudarTipo('publico')" class="active">Chat Público</button>
         <button id="btn-privado" onclick="mudarTipo('privado')">Chat Privado</button>
+        <button id="btn-pessoal" onclick="mudarTipo('pessoal')">Conversas Pessoais</button>
       </div>
       <div class="sala-info" id="sala-info"></div>
       <div id="chat"></div>
@@ -207,6 +214,19 @@
         <input type="text" id="mensagem" placeholder="Digite sua mensagem..." autocomplete="off" />
         <button id="enviar">Enviar</button>
       </div>
+    </div>
+  </div>
+
+  <div id="auth-area" style="margin-top:24px; text-align:center;">
+    <div id="user-info" style="display:none;">
+      <span id="user-email"></span>
+      <button onclick="logout()">Sair</button>
+    </div>
+    <div id="login-form">
+      <input type="email" id="login-email" placeholder="Email" />
+      <input type="password" id="login-password" placeholder="Senha" />
+      <button onclick="login()">Entrar</button>
+      <button onclick="loginAnon()">Entrar como Anônimo</button>
     </div>
   </div>
 
@@ -224,6 +244,7 @@
     };
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
+    const auth = firebase.auth();
 
     let tipo = 'publico';
     let codigoSalaPrivada = null;
@@ -234,6 +255,7 @@
       tipo = novoTipo;
       document.getElementById('btn-publico').classList.remove('active');
       document.getElementById('btn-privado').classList.remove('active');
+      document.getElementById('btn-pessoal').classList.remove('active');
       document.getElementById('sala-info').textContent = '';
       if (tipo === 'privado') {
         document.getElementById('btn-privado').classList.add('active');
@@ -262,6 +284,19 @@
           codigoSalaPrivada = null;
           document.getElementById('btn-publico').classList.add('active');
           alert("Opção inválida. Voltando ao chat público.");
+        }
+      } else if (tipo === 'pessoal') {
+        document.getElementById('btn-pessoal').classList.add('active');
+        const outroUsuario = prompt("Com quem deseja conversar? (Digite o nome do usuário)");
+        if (!outroUsuario) {
+          tipo = 'publico';
+          document.getElementById('btn-publico').classList.add('active');
+          alert("Nome inválido. Voltando ao chat público.");
+          document.getElementById('sala-info').textContent = "Chat público";
+        } else {
+          codigoSalaPrivada = null;
+          document.getElementById('sala-info').textContent = "Conversa pessoal com: " + outroUsuario;
+          window.usuarioPessoal = outroUsuario;
         }
       } else {
         codigoSalaPrivada = null;
@@ -294,14 +329,24 @@
         const chatDiv = document.getElementById('chat');
         chatDiv.innerHTML = '';
         let chaves = Object.keys(mensagens);
+        const usuarioAtual = document.getElementById('usuario').value || 'Anônimo';
         chaves.filter(k => {
           const m = mensagens[k];
           if (tipo === 'publico') return m.tipo === 'publico';
           if (tipo === 'privado') return m.tipo === 'privado' && m.sala === codigoSalaPrivada;
+          if (tipo === 'pessoal') {
+            return (
+              m.tipo === 'pessoal' &&
+              ((m.usuario === usuarioAtual && m.destinatario === window.usuarioPessoal) ||
+               (m.usuario === window.usuarioPessoal && m.destinatario === usuarioAtual))
+            );
+          }
           return false;
         }).forEach(k => {
           const m = mensagens[k];
-          chatDiv.innerHTML += `<div class="msg ${m.tipo}"><strong>${m.usuario}:</strong> ${m.msg}</div>`;
+          const minhaMsg = m.usuario === usuarioAtual ? 'minha-msg' : '';
+          const hora = m.timestamp ? new Date(m.timestamp).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : '';
+          chatDiv.innerHTML += `<div class="msg ${m.tipo} ${minhaMsg}"><strong>${m.usuario}</strong> <span style="color:#aaa;font-size:12px;">${hora}</span>: ${m.msg}</div>`;
         });
 
         // Notificar se chegou mensagem nova da sala correta e de outro usuário
@@ -311,7 +356,8 @@
           const usuarioAtual = document.getElementById('usuario').value || 'Anônimo';
           const mesmaSala =
             (tipo === 'publico' && ultimaMsg.tipo === 'publico') ||
-            (tipo === 'privado' && ultimaMsg.tipo === 'privado' && ultimaMsg.sala === codigoSalaPrivada);
+            (tipo === 'privado' && ultimaMsg.tipo === 'privado' && ultimaMsg.sala === codigoSalaPrivada) ||
+            (tipo === 'pessoal' && ultimaMsg.usuario === usuarioAtual);
 
           if (
             ultimaChave !== ultimaKey &&
@@ -343,18 +389,43 @@
       });
     }
 
+    // Palavras proibidas
+    const proibidas = ["foda-se", "filho da puta", "merda", "caralho", "puta"];
+
+    // Enviar mensagem
     document.getElementById('enviar').onclick = function() {
       const usuario = document.getElementById('usuario').value || 'Anônimo';
-      const msg = document.getElementById('mensagem').value;
-      const proibidas = ["foda-se", "filho da puta", "merda", "caralho", "puta"];
-      const msgLower = msg.toLowerCase();
-      if (msg.trim() === '') return;
-      if (proibidas.some(p => msgLower.includes(p))) {
+      const msg = document.getElementById('mensagem').value.trim();
+      if (!msg) return;
+
+      // Checagem de palavras proibidas
+      if (proibidas.some(p => msg.toLowerCase().includes(p))) {
         alert("Mensagem contém palavras proibidas!");
         document.getElementById('mensagem').value = '';
         return;
       }
-      db.ref('mensagens').push({ usuario, msg, tipo, sala: codigoSalaPrivada, timestamp: Date.now() });
+
+      if (tipo === 'pessoal') {
+        if (!window.usuarioPessoal) {
+          alert("Selecione um usuário para conversar.");
+          return;
+        }
+        db.ref('mensagens').push({
+          usuario,
+          msg,
+          tipo,
+          destinatario: window.usuarioPessoal,
+          timestamp: Date.now()
+        });
+      } else {
+        db.ref('mensagens').push({
+          usuario,
+          msg,
+          tipo,
+          sala: codigoSalaPrivada,
+          timestamp: Date.now()
+        });
+      }
       document.getElementById('mensagem').value = '';
     };
 
@@ -390,10 +461,10 @@
         div.className = 'sala-item';
         div.textContent = codigo;
         div.onclick = function() {
-          tipo = 'privado';
-          codigoSalaPrivada = codigo;
           document.getElementById('btn-publico').classList.remove('active');
+          tipo = 'privado';
           document.getElementById('btn-privado').classList.add('active');
+          codigoSalaPrivada = codigo;
           document.getElementById('sala-info').textContent = "Sala privada: " + codigoSalaPrivada;
           carregarMensagens();
         };
@@ -401,10 +472,48 @@
       });
     }
 
-    // Chame ao carregar a página
-    mostrarSalasHistorico();
-    carregarMensagens();
+    // Funções de autenticação
+    function login() {
+      const email = document.getElementById('login-email').value;
+      const password = document.getElementById('login-password').value;
+      auth.signInWithEmailAndPassword(email, password)
+        .catch(e => alert('Erro: ' + e.message));
+    }
+
+    function loginAnon() {
+      auth.signInAnonymously()
+        .catch(e => alert('Erro: ' + e.message));
+    }
+
+    function logout() {
+      auth.signOut();
+    }
+
+    // Atualiza UI conforme login
+    auth.onAuthStateChanged(user => {
+      if (user) {
+        document.getElementById('login-form').style.display = 'none';
+        document.getElementById('user-info').style.display = '';
+        document.getElementById('user-email').textContent = user.email || user.displayName;
+        document.getElementById('usuario').value = user.displayName || user.email.split('@')[0];
+        document.getElementById('usuario').disabled = true;
+        document.querySelector('.chat-container').style.display = '';
+      } else {
+        document.getElementById('login-form').style.display = '';
+        document.getElementById('user-info').style.display = 'none';
+        document.querySelector('.chat-container').style.display = 'none';
+      }
+    });
+
+    // Esconde chat até login
     document.addEventListener('DOMContentLoaded', function() {
+      document.querySelector('.chat-container').style.display = 'none';
+    });
+
+    // Chame ao carregar a página
+    document.addEventListener('DOMContentLoaded', function() {
+      carregarMensagens();
+      mostrarSalasHistorico();
       limparMensagensPublicasAntigas();
     });
   </script>

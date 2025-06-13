@@ -234,7 +234,7 @@
           usuarioNome = snapshot.val() || user.email;
           document.getElementById('usuario-nome').textContent = usuarioNome;
           document.getElementById('usuario').value = usuarioNome;
-          carregarHistoricoUsuario();
+          carregarHistoricoSalas(); // <-- aqui!
         });
       } else {
         window.location.href = "login/index.html";
@@ -352,7 +352,6 @@
 
         // Atualiza histórico pessoal na sidebar e no banco
         atualizarHistoricoSidebar(historicoPessoal);
-        salvarHistoricoUsuario(historicoPessoal);
 
         // Notificar se chegou mensagem nova da sala correta e de outro usuário
         if (chaves.length > 0) {

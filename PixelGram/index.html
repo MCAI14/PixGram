@@ -247,52 +247,34 @@
     }
 
     // Botões de seleção de chat
-    function mudarTipo(novoTipo) {
+    function mudarTipo(novoTipo, identificador) {
       tipo = novoTipo;
       document.getElementById('btn-publico').classList.remove('active');
       document.getElementById('btn-privado').classList.remove('active');
       document.getElementById('btn-pessoal').classList.remove('active');
       document.getElementById('sala-info').textContent = '';
       if (tipo === 'privado') {
-        document.getElementById('btn-privado').classList.add('active');
-        const acao = prompt("Digite '1' para criar uma sala privada ou '2' para entrar numa sala existente:");
-        if (acao === '1') {
-          codigoSalaPrivada = Math.random().toString(36).substring(2, 8).toUpperCase();
-          alert("Código da sua sala privada: " + codigoSalaPrivada + "\nGuarde este código para partilhar com outros.");
+        codigoSalaPrivada = identificador || prompt("Digite o código da sala privada:");
+        if (codigoSalaPrivada) {
           document.getElementById('sala-info').textContent = "Sala privada: " + codigoSalaPrivada;
           salvarSalaNoHistorico(codigoSalaPrivada);
-          adicionarAoHistorico('privado', codigoSalaPrivada); // Adiciona ao histórico
-        } else if (acao === '2') {
-          codigoSalaPrivada = prompt("Digite o código da sala privada:");
-          if (!codigoSalaPrivada) {
-            tipo = 'publico';
-            codigoSalaPrivada = null;
-            document.getElementById('btn-publico').classList.add('active');
-            alert("Código inválido. Voltando ao chat público.");
-          } else {
-            document.getElementById('sala-info').textContent = "Sala privada: " + codigoSalaPrivada;
-            salvarSalaNoHistorico(codigoSalaPrivada);
-            adicionarAoHistorico('privado', codigoSalaPrivada); // Adiciona ao histórico
-          }
+          adicionarAoHistorico('privado', codigoSalaPrivada, 'Sala privada: ' + codigoSalaPrivada); // Adiciona ao histórico
         } else {
           tipo = 'publico';
           codigoSalaPrivada = null;
           document.getElementById('btn-publico').classList.add('active');
-          alert("Opção inválida. Voltando ao chat público.");
+          alert("Código inválido. Voltando ao chat público.");
         }
       } else if (tipo === 'pessoal') {
-        document.getElementById('btn-pessoal').classList.add('active');
-        const outroUsuario = prompt("Com quem deseja conversar? (Digite o nome do usuário)");
-        if (!outroUsuario) {
+        window.usuarioPessoal = identificador || prompt("Com quem deseja conversar?");
+        if (window.usuarioPessoal) {
+          document.getElementById('sala-info').textContent = "Conversa pessoal com: " + window.usuarioPessoal;
+          adicionarAoHistorico('pessoal', window.usuarioPessoal, 'Pessoal: ' + window.usuarioPessoal); // Adiciona ao histórico
+        } else {
           tipo = 'publico';
           document.getElementById('btn-publico').classList.add('active');
           alert("Nome inválido. Voltando ao chat público.");
           document.getElementById('sala-info').textContent = "Chat público";
-        } else {
-          codigoSalaPrivada = null;
-          document.getElementById('sala-info').textContent = "Conversa pessoal com: " + outroUsuario;
-          window.usuarioPessoal = outroUsuario;
-          adicionarAoHistorico('pessoal', outroUsuario); // Adiciona ao histórico
         }
       } else {
         codigoSalaPrivada = null;
@@ -376,16 +358,16 @@
       });
     }
 
-    function adicionarAoHistorico(tipo, identificador) {
+    function adicionarAoHistorico(tipo, identificador, nomeExibicao) {
       const user = auth.currentUser;
       if (!user) return;
       const ref = db.ref('users/' + user.uid + '/historicoSalas');
       ref.once('value').then(snapshot => {
         let historico = snapshot.val() || [];
-        // Evita duplicados
+        // Remove duplicados
         historico = historico.filter(item => !(item.tipo === tipo && item.id === identificador));
-        historico.unshift({ tipo, id: identificador, data: Date.now() });
-        if (historico.length > 15) historico = historico.slice(0, 15);
+        historico.unshift({ tipo, id: identificador, nome: nomeExibicao, data: Date.now() });
+        if (historico.length > 20) historico = historico.slice(0, 20);
         ref.set(historico);
         atualizarHistoricoSidebar(historico);
       });
@@ -393,10 +375,10 @@
 
     // Exemplo de chamada ao entrar numa sala/conversa:
     if (tipo === 'privado') {
-      adicionarAoHistorico('privado', codigoSalaPrivada);
+      adicionarAoHistorico('privado', codigoSalaPrivada, 'Sala privada: ' + codigoSalaPrivada);
     }
     if (tipo === 'pessoal') {
-      adicionarAoHistorico('pessoal', window.usuarioPessoal);
+      adicionarAoHistorico('pessoal', window.usuarioPessoal, 'Pessoal: ' + window.usuarioPessoal);
     }
 
     // Para mostrar na sidebar:
@@ -419,13 +401,11 @@
       historico.forEach(item => {
         const div = document.createElement('div');
         div.className = 'historico-item';
-        if (item.tipo === 'privado') {
-          div.textContent = `Sala privada: ${item.id}`;
-          div.onclick = () => mudarTipo('privado', item.id);
-        } else if (item.tipo === 'pessoal') {
-          div.textContent = `Pessoal: ${item.id}`;
-          div.onclick = () => mudarTipo('pessoal', item.id);
-        }
+        div.textContent = item.nome || (item.tipo === 'privado' ? `Sala privada: ${item.id}` : `Pessoal: ${item.id}`);
+        div.onclick = () => {
+          if (item.tipo === 'privado') mudarTipo('privado', item.id);
+          if (item.tipo === 'pessoal') mudarTipo('pessoal', item.id);
+        };
         list.appendChild(div);
       });
     }

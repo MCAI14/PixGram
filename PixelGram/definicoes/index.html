@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Definições | PixelGram</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      background: #f7f9fd;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+      justify-content: flex-start;
+    }
+    .settings-container {
+      background: #fff;
+      border-radius: 14px;
+      box-shadow: 0 4px 24px rgba(44, 62, 80, 0.08);
+      padding: 32px 24px 24px 24px;
+      width: 100%;
+      max-width: 400px;
+      margin-top: 48px;
+      display: flex;
+      flex-direction: column;
+      gap: 22px;
+      align-items: stretch;
+    }
+    .settings-container h2 {
+      margin: 0 0 18px 0;
+      color: #007bff;
+      text-align: center;
+    }
+    .settings-group {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-bottom: 18px;
+    }
+    .settings-label {
+      font-weight: bold;
+      margin-bottom: 4px;
+      color: #2d3a4b;
+    }
+    .settings-input {
+      padding: 8px 10px;
+      border-radius: 6px;
+      border: 1px solid #d1d5db;
+      font-size: 1rem;
+      outline: none;
+      width: 100%;
+    }
+    .settings-btn {
+      background: #007bff;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      padding: 10px 0;
+      font-size: 16px;
+      cursor: pointer;
+      transition: background 0.2s;
+      margin-bottom: 8px;
+    }
+    .settings-btn.danger {
+      background: #e74c3c;
+    }
+    .settings-btn.danger:hover {
+      background: #c0392b;
+    }
+    .settings-btn:hover {
+      background: #0056b3;
+    }
+    .settings-btn.secondary {
+      background: #888;
+    }
+    .settings-btn.secondary:hover {
+      background: #555;
+    }
+    .settings-info {
+      color: #27ae60;
+      font-size: 15px;
+      margin-top: 6px;
+      text-align: center;
+    }
+    .settings-error {
+      color: #e74c3c;
+      font-size: 15px;
+      margin-top: 6px;
+      text-align: center;
+    }
+    .back-link {
+      color: #007bff;
+      text-decoration: none;
+      margin-bottom: 18px;
+      display: inline-block;
+      font-size: 1rem;
+      transition: color 0.2s;
+    }
+    .back-link:hover {
+      color: #0056b3;
+      text-decoration: underline;
+    }
+  </style>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+</head>
+<body>
+  <div class="settings-container">
+    <a href="index.html" class="back-link">&larr; Voltar ao chat</a>
+    <h2>Definições</h2>
+    <div class="settings-group">
+      <div class="settings-label">Nome atual:</div>
+      <div id="nome-atual" style="margin-bottom:8px;color:#2d3a4b;font-weight:bold;"></div>
+      <input type="text" id="novo-nome" class="settings-input" placeholder="Novo nome" />
+      <button class="settings-btn" onclick="alterarNome()">Alterar Nome</button>
+      <div id="nome-info" class="settings-info"></div>
+    </div>
+    <div class="settings-group">
+      <button class="settings-btn" onclick="fazerBackup()">Fazer Backup do Histórico</button>
+      <a id="backup-link" style="display:none;" download="pixelgram_backup.json">Download do Backup</a>
+      <div id="backup-info" class="settings-info"></div>
+    </div>
+    <div class="settings-group">
+      <button class="settings-btn danger" onclick="apagarHistorico()">Apagar Histórico de Conversas</button>
+      <div id="apagar-info" class="settings-info"></div>
+    </div>
+  </div>
+  <script>
+    // Configurações do seu Firebase
+    const firebaseConfig = {
+      apiKey: "AIzaSyBEesXKUPQibsTXT48pQmL0yfOEHNwE85I",
+      authDomain: "pixelgram-fd1bf.firebaseapp.com",
+      databaseURL: "https://pixelgram-fd1bf-default-rtdb.firebaseio.com",
+      projectId: "pixelgram-fd1bf",
+      storageBucket: "pixelgram-fd1bf.firebasestorage.app",
+      messagingSenderId: "526005169331",
+      appId: "1:526005169331:web:7717c5a46a653e1ddc14c6",
+      measurementId: "G-B97XPZM2FN"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+    const auth = firebase.auth();
+
+    let usuarioNome = '';
+
+    auth.onAuthStateChanged(user => {
+      if (user) {
+        db.ref('users/' + user.uid + '/name').once('value').then(snapshot => {
+          usuarioNome = snapshot.val() || user.email;
+          document.getElementById('nome-atual').textContent = usuarioNome;
+        });
+      } else {
+        window.location.href = "login/index.html";
+      }
+    });
+
+    function alterarNome() {
+      const novoNome = document.getElementById('novo-nome').value.trim();
+      document.getElementById('nome-info').textContent = '';
+      if (!novoNome) {
+        document.getElementById('nome-info').textContent = 'Digite um novo nome.';
+        return;
+      }
+      const user = auth.currentUser;
+      if (!user) return;
+      db.ref('users/' + user.uid + '/name').set(novoNome).then(() => {
+        document.getElementById('nome-atual').textContent = novoNome;
+        document.getElementById('nome-info').textContent = 'Nome alterado com sucesso!';
+        document.getElementById('novo-nome').value = '';
+      });
+    }
+
+    function apagarHistorico() {
+      if (!confirm("Tem certeza que deseja apagar TODO o seu histórico de salas/conversas?")) return;
+      const user = auth.currentUser;
+      if (!user) return;
+      db.ref('users/' + user.uid + '/historicoSalas').remove().then(() => {
+        document.getElementById('apagar-info').textContent = 'Histórico apagado!';
+      });
+    }
+
+    function fazerBackup() {
+      const user = auth.currentUser;
+      if (!user) return;
+      db.ref('users/' + user.uid + '/historicoSalas').once('value').then(snapshot => {
+        const historico = snapshot.val() || [];
+        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(historico, null, 2));
+        const dl = document.getElementById('backup-link');
+        dl.href = dataStr;
+        dl.style.display = '';
+        dl.click();
+        document.getElementById('backup-info').textContent = 'Backup gerado!';
+      });
+    }
+  </script>
+</body>
+</html>

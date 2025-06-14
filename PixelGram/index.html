@@ -191,7 +191,12 @@
         <div class="user-info">
           <span id="usuario-nome" style="font-weight:bold;"></span>
         </div>
-        <button class="logout-btn" onclick="logout()">Sair</button>
+        <div style="display:flex;gap:8px;">
+          <button class="logout-btn" onclick="logout()">Sair</button>
+          <button class="settings-btn" onclick="window.location.href='definicoes.html'" title="Definições" style="background:#eee;color:#007bff;border:none;padding:5px 12px;border-radius:5px;cursor:pointer;font-weight:bold;">
+            ⚙️
+          </button>
+        </div>
       </div>
       <div class="chat-type-bar">
         <button id="btn-publico" onclick="mudarTipo('publico')" class="active">Chat Público</button>

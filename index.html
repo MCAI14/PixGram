@@ -41,6 +41,44 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+    <script>
+      // Configurações do seu Firebase (as mesmas do login)
+      const firebaseConfig = {
+        apiKey: "AIzaSyBEesXKUPQibsTXT48pQmL0yfOEHNwE85I",
+        authDomain: "pixelgram-fd1bf.firebaseapp.com",
+        databaseURL: "https://pixelgram-fd1bf-default-rtdb.firebaseio.com",
+        projectId: "pixelgram-fd1bf",
+        storageBucket: "pixelgram-fd1bf.firebasestorage.app",
+        messagingSenderId: "526005169331",
+        appId: "1:526005169331:web:7717c5a46a653e1ddc14c6",
+        measurementId: "G-B97XPZM2FN"
+      };
+      firebase.initializeApp(firebaseConfig);
+      const db = firebase.database();
+      const auth = firebase.auth();
+
+      // Só mostra o site se estiver autenticado
+      auth.onAuthStateChanged(user => {
+        if (user) {
+          // Busca o nome do utilizador no database
+          db.ref('users/' + user.uid + '/name').once('value').then(snapshot => {
+            const nome = snapshot.val() || user.email;
+            document.getElementById('user-nome').textContent = nome;
+          });
+          document.getElementById('main-layout').style.display = '';
+        } else {
+          window.location.href = "PixelGram/login/index.html";
+        }
+      });
+
+      // Logout
+      window.addEventListener('DOMContentLoaded', function() {
+        document.getElementById('logout-btn').onclick = function(e) {
+          e.preventDefault();
+          auth.signOut();
+        };
+      });
+    </script>
 </head>
 <body>
     <div class="main-layout" id="main-layout" style="display:none;">
@@ -125,32 +163,32 @@
                 <button type="submit">Publicar</button>
             </form>
             <script>
-document.getElementById('create-post-form').onsubmit = async function(e) {
-  e.preventDefault();
-  const file = document.getElementById('media').files[0];
-  const caption = document.getElementById('caption').value;
+            document.getElementById('create-post-form').onsubmit = async function(e) {
+              e.preventDefault();
+              const file = document.getElementById('media').files[0];
+              const caption = document.getElementById('caption').value;
 
-  if (!file) return alert('Escolha um ficheiro!');
+              if (!file) return alert('Escolha um ficheiro!');
 
-  const formData = new FormData();
-  formData.append('file', file);
-  formData.append('upload_preset', 'pixelgram_unsigned');
+              const formData = new FormData();
+              formData.append('file', file);
+              formData.append('upload_preset', 'pixelgram_unsigned');
 
-  // Upload para Cloudinary
-  const res = await fetch('https://api.cloudinary.com/v1_1/dg5zjs1qh/upload', {
-    method: 'POST',
-    body: formData
-  });
-  const data = await res.json();
+              // Upload para Cloudinary
+              const res = await fetch('https://api.cloudinary.com/v1_1/dg5zjs1qh/upload', {
+                method: 'POST',
+                body: formData
+              });
+              const data = await res.json();
 
-  if (data.secure_url) {
-    alert('Upload feito!\nURL: ' + data.secure_url);
-    // Aqui pode guardar data.secure_url, caption, etc. no Firebase Database
-  } else {
-    alert('Erro no upload!');
-  }
-};
-</script>
+              if (data.secure_url) {
+                alert('Upload feito!\nURL: ' + data.secure_url);
+                // Aqui pode guardar data.secure_url, caption, etc. no Firebase Database
+              } else {
+                alert('Erro no upload!');
+              }
+            };
+            </script>
         </main>
         <aside class="suggestions">
             <h3>Sugestões para ti</h3>
@@ -175,255 +213,5 @@ document.getElementById('create-post-form').onsubmit = async function(e) {
             </div>
         </aside>
     </div>
-    <script>
-    // Configurações do seu Firebase
-    const firebaseConfig = {
-      apiKey: "AIzaSyBEesXKUPQibsTXT48pQmL0yfOEHNwE85I",
-      authDomain: "pixelgram-fd1bf.firebaseapp.com",
-      databaseURL: "https://pixelgram-fd1bf-default-rtdb.firebaseio.com",
-      projectId: "pixelgram-fd1bf",
-      storageBucket: "pixelgram-fd1bf.firebasestorage.app",
-      messagingSenderId: "526005169331",
-      appId: "1:526005169331:web:7717c5a46a653e1ddc14c6",
-      measurementId: "G-B97XPZM2FN"
-    };
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.database();
-    const auth = firebase.auth();
-
-    let tipo = 'publico';
-    let codigoSalaPrivada = null;
-    let ultimaChave = null;
-    let usuarioNome = '';
-
-    // Preencher nome do usuário autenticado
-    auth.onAuthStateChanged(user => {
-      if (user) {
-        db.ref('users/' + user.uid + '/name').once('value').then(snapshot => {
-          usuarioNome = snapshot.val() || user.email;
-          document.getElementById('usuario-nome').textContent = usuarioNome;
-          carregarHistoricoSalas();
-        });
-      } else {
-        window.location.href = "login/index.html";
-      }
-    });
-
-    function logout() {
-      auth.signOut();
-      window.location.href = "login/index.html";
-    }
-
-    // Botões de seleção de chat
-    function mudarTipo(novoTipo, identificador) {
-      tipo = novoTipo;
-      document.getElementById('btn-publico').classList.remove('active');
-      document.getElementById('btn-privado').classList.remove('active');
-      document.getElementById('btn-pessoal').classList.remove('active');
-      document.getElementById('sala-info').textContent = '';
-      if (tipo === 'privado') {
-        codigoSalaPrivada = identificador || prompt("Digite o código da sala privada:");
-        if (codigoSalaPrivada) {
-          document.getElementById('sala-info').textContent = "Sala privada: " + codigoSalaPrivada;
-          salvarSalaNoHistorico(codigoSalaPrivada);
-          adicionarAoHistorico('privado', codigoSalaPrivada, 'Sala privada: ' + codigoSalaPrivada);
-        } else {
-          tipo = 'publico';
-          codigoSalaPrivada = null;
-          document.getElementById('btn-publico').classList.add('active');
-          alert("Código inválido. Voltando ao chat público.");
-        }
-      } else if (tipo === 'pessoal') {
-        window.usuarioPessoal = identificador || prompt("Com quem deseja conversar?");
-        if (window.usuarioPessoal) {
-          document.getElementById('sala-info').textContent = "Conversa pessoal com: " + window.usuarioPessoal;
-          adicionarAoHistorico('pessoal', window.usuarioPessoal, 'Pessoal: ' + window.usuarioPessoal);
-        } else {
-          tipo = 'publico';
-          document.getElementById('btn-publico').classList.add('active');
-          alert("Nome inválido. Voltando ao chat público.");
-          document.getElementById('sala-info').textContent = "Chat público";
-        }
-      } else {
-        codigoSalaPrivada = null;
-        document.getElementById('btn-publico').classList.add('active');
-        document.getElementById('sala-info').textContent = "Chat público";
-      }
-      carregarMensagens();
-    }
-
-    // Notificações
-    document.addEventListener('DOMContentLoaded', function() {
-      if ("Notification" in window) {
-        if (Notification.permission === "default") {
-          Notification.requestPermission();
-        }
-      }
-      document.getElementById('sala-info').textContent = "Chat público";
-    });
-
-    function mostrarNotificacao(titulo, corpo) {
-      if (Notification.permission === "granted") {
-        new Notification(titulo, { body: corpo });
-      }
-    }
-
-    function carregarMensagens() {
-      db.ref('mensagens').off();
-      db.ref('mensagens').on('value', snapshot => {
-        const mensagens = snapshot.val() || {};
-        const chatDiv = document.getElementById('chat');
-        chatDiv.innerHTML = '';
-        let chaves = Object.keys(mensagens);
-        const usuarioAtual = usuarioNome || 'Anônimo';
-        let historicoPessoal = [];
-        chaves.filter(k => {
-          const m = mensagens[k];
-          if (tipo === 'publico') return m.tipo === 'publico';
-          if (tipo === 'privado') return m.tipo === 'privado' && m.sala === codigoSalaPrivada;
-          if (tipo === 'pessoal') {
-            return (
-              m.tipo === 'pessoal' &&
-              ((m.usuario === usuarioAtual && m.destinatario === window.usuarioPessoal) ||
-               (m.usuario === window.usuarioPessoal && m.destinatario === usuarioAtual))
-            );
-          }
-          return false;
-        }).forEach(k => {
-          const m = mensagens[k];
-          const minhaMsg = m.usuario === usuarioAtual ? 'minha-msg' : '';
-          const hora = m.timestamp ? new Date(m.timestamp).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : '';
-          chatDiv.innerHTML += `<div class="msg ${m.tipo} ${minhaMsg}"><strong>${m.usuario}</strong> <span style="color:#aaa;font-size:12px;">${hora}</span>: ${m.msg}</div>`;
-          if (m.usuario === usuarioAtual) {
-            historicoPessoal.push({ msg: m.msg, hora });
-          }
-        });
-
-        // Atualiza histórico pessoal na sidebar e no banco
-        atualizarHistoricoSidebar(historicoPessoal);
-
-        // Notificar se chegou mensagem nova da sala correta e de outro usuário
-        if (chaves.length > 0) {
-          const ultimaKey = chaves[chaves.length - 1];
-          const ultimaMsg = mensagens[ultimaKey];
-          const mesmaSala =
-            (tipo === 'publico' && ultimaMsg.tipo === 'publico') ||
-            (tipo === 'privado' && ultimaMsg.tipo === 'privado' && ultimaMsg.sala === codigoSalaPrivada) ||
-            (tipo === 'pessoal' && ultimaMsg.usuario === usuarioAtual);
-
-          if (
-            ultimaChave !== ultimaKey &&
-            ultimaMsg.usuario !== usuarioAtual &&
-            mesmaSala
-          ) {
-            mostrarNotificacao(ultimaMsg.usuario, ultimaMsg.msg);
-          }
-          ultimaChave = ultimaKey;
-        }
-        chatDiv.scrollTop = chatDiv.scrollHeight;
-      });
-    }
-
-    function adicionarAoHistorico(tipo, identificador, nomeExibicao) {
-      const user = auth.currentUser;
-      if (!user) return;
-      const ref = db.ref('users/' + user.uid + '/historicoSalas');
-      ref.once('value').then(snapshot => {
-        let historico = snapshot.val() || [];
-        historico = historico.filter(item => !(item.tipo === tipo && item.id === identificador));
-        historico.unshift({ tipo, id: identificador, nome: nomeExibicao, data: Date.now() });
-        if (historico.length > 20) historico = historico.slice(0, 20);
-        ref.set(historico);
-        atualizarHistoricoSidebar(historico);
-      });
-    }
-
-    function carregarHistoricoSalas() {
-      const user = auth.currentUser;
-      if (!user) return;
-      db.ref('users/' + user.uid + '/historicoSalas').once('value').then(snapshot => {
-        const historico = snapshot.val() || [];
-        atualizarHistoricoSidebar(historico);
-      });
-    }
-
-    function atualizarHistoricoSidebar(historico) {
-      const list = document.getElementById('historico-list');
-      list.innerHTML = '';
-      if (!historico.length) {
-        list.innerHTML = '<div style="color:#aaa;text-align:center;">Nenhuma sala/conversa</div>';
-        return;
-      }
-      historico.forEach(item => {
-        const div = document.createElement('div');
-        div.className = 'historico-item';
-        div.textContent = item.nome || (item.tipo === 'privado' ? `Sala privada: ${item.id}` : `Pessoal: ${item.id}`);
-        div.onclick = () => {
-          if (item.tipo === 'privado') mudarTipo('privado', item.id);
-          if (item.tipo === 'pessoal') mudarTipo('pessoal', item.id);
-        };
-        list.appendChild(div);
-      });
-    }
-
-    // Palavras proibidas
-    const proibidas = ["foda-se", "filho da puta", "merda", "caralho", "puta"];
-
-    // Enviar mensagem
-    document.getElementById('enviar').onclick = function() {
-      const usuario = usuarioNome || 'Anônimo';
-      const msg = document.getElementById('mensagem').value.trim();
-      if (!msg) return;
-
-      if (proibidas.some(p => msg.toLowerCase().includes(p))) {
-        alert("Mensagem contém palavras proibidas!");
-        document.getElementById('mensagem').value = '';
-        return;
-      }
-
-      if (tipo === 'pessoal') {
-        if (!window.usuarioPessoal) {
-          alert("Selecione um usuário para conversar.");
-          return;
-        }
-        db.ref('mensagens').push({
-          usuario,
-          msg,
-          tipo,
-          destinatario: window.usuarioPessoal,
-          timestamp: Date.now()
-        });
-      } else {
-        db.ref('mensagens').push({
-          usuario,
-          msg,
-          tipo,
-          sala: codigoSalaPrivada,
-          timestamp: Date.now()
-        });
-      }
-      document.getElementById('mensagem').value = '';
-    };
-
-    document.getElementById('mensagem').addEventListener('keydown', function(e) {
-      if (e.key === 'Enter') {
-        document.getElementById('enviar').click();
-      }
-    });
-
-    function salvarSalaNoHistorico(codigo) {
-      if (!codigo) return;
-      let salas = JSON.parse(localStorage.getItem('salasHistorico') || '[]');
-      if (!salas.includes(codigo)) {
-        salas.unshift(codigo);
-        if (salas.length > 10) salas = salas.slice(0, 10);
-        localStorage.setItem('salasHistorico', JSON.stringify(salas));
-      }
-    }
-
-    document.addEventListener('DOMContentLoaded', function() {
-      carregarMensagens();
-    });
-  </script>
 </body>
 </html>

@@ -5,150 +5,38 @@
     <title>PixelGram - Página Inicial</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
-        body {
-            margin: 0;
-            font-family: Arial, sans-serif;
-            background: #fafafa;
-            color: #222;
-        }
-        .main-layout {
-            display: flex;
-            min-height: 100vh;
-            max-width: 1400px;
-            margin: 0 auto;
-        }
-        .sidebar {
-            width: 250px;
-            background: #fff;
-            border-right: 1px solid #ddd;
-            padding: 2rem 1rem 1rem 2rem;
-            display: flex;
-            flex-direction: column;
-            gap: 1.5rem;
-        }
-        .sidebar .logo {
-            font-size: 2rem;
-            font-weight: bold;
-            color: #007bff;
-            margin-bottom: 2rem;
-        }
-        .sidebar nav a {
-            display: flex;
-            align-items: center;
-            gap: 0.7rem;
-            color: #222;
-            text-decoration: none;
-            font-size: 1.1rem;
-            padding: 0.5rem 0;
-            border-radius: 5px;
-            transition: background 0.2s;
-        }
-        .sidebar nav a:hover, .sidebar nav a.active {
-            background: #f0f4ff;
-            color: #007bff;
-        }
-        .feed {
-            flex: 1;
-            padding: 2rem 2rem 2rem 2rem;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            min-width: 400px;
-        }
-        .post {
-            background: #fff;
-            border: 1px solid #ddd;
-            border-radius: 10px;
-            margin-bottom: 2rem;
-            width: 500px;
-            max-width: 100%;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.03);
-        }
-        .post-header {
-            display: flex;
-            align-items: center;
-            padding: 1rem;
-            border-bottom: 1px solid #eee;
-        }
-        .avatar {
-            width: 44px;
-            height: 44px;
-            border-radius: 50%;
-            background: #eee;
-            margin-right: 1rem;
-        }
-        .post-user {
-            font-weight: bold;
-        }
-        .post-img {
-            width: 100%;
-            display: block;
-            border-bottom: 1px solid #eee;
-        }
-        .post-content {
-            padding: 1rem;
-        }
-        .post-actions {
-            display: flex;
-            gap: 1.5rem;
-            padding: 0 1rem 1rem 1rem;
-            color: #888;
-        }
-        .suggestions {
-            width: 320px;
-            padding: 2rem 1rem 1rem 1rem;
-            background: #fafafa;
-        }
-        .suggestions h3 {
-            font-size: 1.1rem;
-            margin-bottom: 1rem;
-            color: #888;
-        }
-        .suggestion-list {
-            display: flex;
-            flex-direction: column;
-            gap: 1.2rem;
-        }
-        .suggestion {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
-        .suggestion .avatar {
-            width: 36px;
-            height: 36px;
-            margin-right: 0.7rem;
-        }
-        .suggestion-info {
-            flex: 1;
-        }
-        .suggestion-name {
-            font-weight: bold;
-            font-size: 1rem;
-        }
-        .suggestion-btn {
-            background: #007bff;
-            color: #fff;
-            border: none;
-            border-radius: 5px;
-            padding: 0.3rem 1rem;
-            cursor: pointer;
-            font-size: 0.95rem;
-            transition: background 0.2s;
-        }
-        .suggestion-btn:hover {
-            background: #0056b3;
-        }
-        @media (max-width: 1100px) {
-            .suggestions { display: none; }
-            .sidebar { width: 70px; padding: 2rem 0.5rem; }
-            .sidebar .logo { font-size: 1.2rem; }
-            .sidebar nav a span { display: none; }
-        }
-        @media (max-width: 700px) {
-            .sidebar { display: none; }
-            .feed { padding: 1rem; }
-        }
+        body { margin: 0; font-family: Arial, sans-serif; background: #fafafa; color: #222; }
+        .main-layout { display: flex; min-height: 100vh; max-width: 1400px; margin: 0 auto; }
+        .sidebar { width: 250px; background: #fff; border-right: 1px solid #ddd; padding: 2rem 1rem 1rem 2rem; display: flex; flex-direction: column; gap: 1.5rem; }
+        .sidebar .logo { font-size: 2rem; font-weight: bold; color: #007bff; margin-bottom: 2rem; }
+        .sidebar nav a { display: flex; align-items: center; gap: 0.7rem; color: #222; text-decoration: none; font-size: 1.1rem; padding: 0.5rem 0; border-radius: 5px; transition: background 0.2s; }
+        .sidebar nav a:hover, .sidebar nav a.active { background: #f0f4ff; color: #007bff; }
+        .feed { flex: 1; padding: 2rem 2rem 2rem 2rem; display: flex; flex-direction: column; align-items: center; min-width: 400px; }
+        .post { background: #fff; border: 1px solid #ddd; border-radius: 10px; margin-bottom: 2rem; width: 500px; max-width: 100%; box-shadow: 0 2px 8px rgba(0,0,0,0.03); }
+        .post-header { display: flex; align-items: center; padding: 1rem; border-bottom: 1px solid #eee; }
+        .avatar { width: 44px; height: 44px; border-radius: 50%; background: #eee; margin-right: 1rem; }
+        .post-user { font-weight: bold; }
+        .post-img, .post-video { width: 100%; display: block; border-bottom: 1px solid #eee; }
+        .post-content { padding: 1rem; }
+        .post-actions { display: flex; gap: 1.5rem; padding: 0 1rem 1rem 1rem; color: #888; }
+        .post-actions span { cursor: pointer; }
+        .comments { padding: 0 1rem 1rem 1rem; }
+        .comment { margin-bottom: 0.5rem; }
+        .comment-user { font-weight: bold; margin-right: 0.4rem; }
+        .add-comment { display: flex; gap: 0.5rem; margin-top: 0.5rem; }
+        .add-comment input { flex: 1; padding: 0.4rem 0.7rem; border-radius: 5px; border: 1px solid #ddd; }
+        .add-comment button { background: #007bff; color: #fff; border: none; border-radius: 5px; padding: 0.4rem 1rem; cursor: pointer; }
+        .suggestions { width: 320px; padding: 2rem 1rem 1rem 1rem; background: #fafafa; }
+        .suggestions h3 { font-size: 1.1rem; margin-bottom: 1rem; color: #888; }
+        .suggestion-list { display: flex; flex-direction: column; gap: 1.2rem; }
+        .suggestion { display: flex; align-items: center; justify-content: space-between; }
+        .suggestion .avatar { width: 36px; height: 36px; margin-right: 0.7rem; }
+        .suggestion-info { flex: 1; }
+        .suggestion-name { font-weight: bold; font-size: 1rem; }
+        .suggestion-btn { background: #007bff; color: #fff; border: none; border-radius: 5px; padding: 0.3rem 1rem; cursor: pointer; font-size: 0.95rem; transition: background 0.2s; }
+        .suggestion-btn:hover { background: #0056b3; }
+        @media (max-width: 1100px) { .suggestions { display: none; } .sidebar { width: 70px; padding: 2rem 0.5rem; } .sidebar .logo { font-size: 1.2rem; } .sidebar nav a span { display: none; } }
+        @media (max-width: 700px) { .sidebar { display: none; } .feed { padding: 1rem; } }
     </style>
 </head>
 <body>
@@ -165,8 +53,8 @@
                 <a href="#">👤 <span>Perfil</span></a>
             </nav>
         </aside>
-        <main class="feed">
-            <!-- Exemplo de post -->
+        <main class="feed" id="feed">
+            <!-- Exemplo de post de imagem -->
             <div class="post">
                 <div class="post-header">
                     <div class="avatar"></div>
@@ -181,12 +69,81 @@
                     <span style="color:#888; font-size:0.95rem;">359 gostos</span>
                 </div>
                 <div class="post-actions">
-                    <span>♡ Gostar</span>
+                    <span onclick="likePost(this)">♡ Gostar</span>
                     <span>💬 Comentar</span>
                     <span>✉️ Partilhar</span>
                 </div>
+                <div class="comments">
+                    <div class="comment"><span class="comment-user">mauricio</span>Grande post!</div>
+                    <form class="add-comment" onsubmit="addComment(event, this)">
+                        <input type="text" placeholder="Adiciona um comentário..." />
+                        <button type="submit">Publicar</button>
+                    </form>
+                </div>
+            </div>
+            <!-- Exemplo de post de vídeo -->
+            <div class="post">
+                <div class="post-header">
+                    <div class="avatar"></div>
+                    <div>
+                        <div class="post-user">joana_videos</div>
+                        <div style="font-size:0.9rem; color:#888;">2 h</div>
+                    </div>
+                </div>
+                <video class="post-video" controls poster="https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=500&q=80">
+                    <source src="https://www.w3schools.com/html/mov_bbb.mp4" type="video/mp4">
+                    O seu browser não suporta vídeo.
+                </video>
+                <div class="post-content">
+                    <strong>joana_videos</strong> Olhem este vídeo!<br>
+                    <span style="color:#888; font-size:0.95rem;">120 gostos</span>
+                </div>
+                <div class="post-actions">
+                    <span onclick="likePost(this)">♡ Gostar</span>
+                    <span>💬 Comentar</span>
+                    <span>✉️ Partilhar</span>
+                </div>
+                <div class="comments">
+                    <div class="comment"><span class="comment-user">marta</span>Adorei!</div>
+                    <form class="add-comment" onsubmit="addComment(event, this)">
+                        <input type="text" placeholder="Adiciona um comentário..." />
+                        <button type="submit">Publicar</button>
+                    </form>
+                </div>
             </div>
             <!-- /Exemplo de post -->
+            <form id="create-post-form">
+                <input type="file" id="media" accept="image/*,video/*" required />
+                <input type="text" id="caption" placeholder="Legenda" />
+                <button type="submit">Publicar</button>
+            </form>
+            <script>
+document.getElementById('create-post-form').onsubmit = async function(e) {
+  e.preventDefault();
+  const file = document.getElementById('media').files[0];
+  const caption = document.getElementById('caption').value;
+
+  if (!file) return alert('Escolha um ficheiro!');
+
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('upload_preset', 'pixelgram_unsigned');
+
+  // Upload para Cloudinary
+  const res = await fetch('https://api.cloudinary.com/v1_1/dg5zjs1qh/upload', {
+    method: 'POST',
+    body: formData
+  });
+  const data = await res.json();
+
+  if (data.secure_url) {
+    alert('Upload feito!\nURL: ' + data.secure_url);
+    // Aqui pode guardar data.secure_url, caption, etc. no Firebase Database
+  } else {
+    alert('Erro no upload!');
+  }
+};
+</script>
         </main>
         <aside class="suggestions">
             <h3>Sugestões para ti</h3>
@@ -211,5 +168,71 @@
             </div>
         </aside>
     </div>
+    <script>
+        // Like simples (apenas visual, para demo)
+        function likePost(el) {
+            if (el.textContent.includes('♡')) {
+                el.textContent = '♥ Gostado';
+                el.style.color = '#e74c3c';
+            } else {
+                el.textContent = '♡ Gostar';
+                el.style.color = '';
+            }
+        }
+        // Comentários (apenas visual, para demo)
+        function addComment(event, form) {
+            event.preventDefault();
+            const input = form.querySelector('input');
+            const val = input.value.trim();
+            if (!val) return;
+            const commentsDiv = form.parentElement;
+            const div = document.createElement('div');
+            div.className = 'comment';
+            div.innerHTML = `<span class="comment-user">tu</span>${val}`;
+            commentsDiv.insertBefore(div, form);
+            input.value = '';
+        }
+    </script>
+    <script>
+        const db = firebase.database();
+        const auth = firebase.auth();
+
+        document.getElementById('create-post-form').onsubmit = async function(e) {
+            e.preventDefault();
+            const file = document.getElementById('media').files[0];
+            const caption = document.getElementById('caption').value;
+            const user = auth.currentUser;
+            if (!user || !file) return;
+
+            // 1. Upload para Cloudinary (substitua YOUR_UPLOAD_PRESET e YOUR_CLOUD_NAME)
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('upload_preset', 'pixelgram_unsigned'); // seu preset
+
+            fetch('https://api.cloudinary.com/v1_1/dg5zjs1qh/upload', {
+              method: 'POST',
+              body: formData
+            })
+            .then(r => r.json())
+            .then(data => {
+              console.log('URL da imagem/vídeo:', data.secure_url);
+              // Guarde esta URL no Firebase Database!
+            });
+
+            // 2. Salvar post no Firebase Database
+            const postData = {
+                user: user.uid,
+                userName: user.displayName || user.email,
+                mediaUrl,
+                mediaType,
+                caption,
+                timestamp: Date.now()
+            };
+            db.ref('posts').push(postData);
+
+            alert('Publicado!');
+            document.getElementById('create-post-form').reset();
+        };
+    </script>
 </body>
 </html>

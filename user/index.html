@@ -1,0 +1,23 @@
+<img id="perfil-avatar" width="120" height="120" style="border-radius:50%;">
+<h2 id="perfil-nome"></h2>
+<p id="perfil-bio"></p>
+<!-- Lista de posts do utilizador -->
+<script>
+// Exemplo para user/index.html
+const username = window.location.pathname.split('/').pop().toLowerCase();
+firebase.database().ref('usernames/' + username).once('value').then(snap => {
+  const uid = snap.val();
+  if (!uid) {
+    // Perfil não encontrado
+    document.body.innerHTML = '<h2>Perfil não encontrado!</h2>';
+    return;
+  }
+  firebase.database().ref('users/' + uid).once('value').then(snap2 => {
+    const user = snap2.val();
+    document.getElementById('perfil-nome').textContent = user.name;
+    document.getElementById('perfil-avatar').src = user.avatar || 'default.jpg';
+    document.getElementById('perfil-bio').textContent = user.bio || '';
+    // Carregue posts do utilizador...
+  });
+});
+</script>

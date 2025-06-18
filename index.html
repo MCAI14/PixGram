@@ -78,6 +78,11 @@
           auth.signOut();
         };
       });
+      document.getElementById('perfil-link').onclick = function(e) {
+        e.preventDefault();
+        const user = firebase.auth().currentUser;
+        if (user) window.location.href = `perfil.html?uid=${user.uid}`;
+      };
     </script>
 </head>
 <body>

@@ -87,7 +87,7 @@
       <div id="login-error" class="error"></div>
     </div>
     <div id="register-form" style="display:none;">
-      <input type="text" id="register-name" placeholder="Nome" />
+      <input type="text" id="register-username" placeholder="Nome de utilizador" required />
       <input type="email" id="register-email" placeholder="Email" />
       <input type="password" id="register-password" placeholder="Senha" />
       <button onclick="register()">Inscrever</button>
@@ -149,23 +149,37 @@
     }
 
     function register() {
-      const name = document.getElementById('register-name').value.trim();
+      const username = document.getElementById('register-username').value.trim().toLowerCase();
       const email = document.getElementById('register-email').value;
       const password = document.getElementById('register-password').value;
-      if (!name) {
-        document.getElementById('register-error').textContent = 'Por favor, insira o seu nome.';
+      if (!username) {
+        document.getElementById('register-error').textContent = 'Por favor, insira um nome de utilizador.';
         return;
       }
-      auth.createUserWithEmailAndPassword(email, password)
-        .then(userCredential => {
-          // Salva o nome no database
-          const uid = userCredential.user.uid;
-          db.ref('users/' + uid).set({ name });
-          localStorage.setItem('pixelgram_user_name', name);
-        })
-        .catch(e => {
-          document.getElementById('register-error').textContent = 'Erro: ' + e.message;
-        });
+      // Verificar se já existe
+      firebase.database().ref('usernames/' + username).once('value').then(snap => {
+        if (snap.exists()) {
+          alert('Nome de utilizador já existe!');
+          return;
+        }
+        // Criar utilizador normalmente
+        auth.createUserWithEmailAndPassword(email, password)
+          .then(userCredential => {
+            const uid = userCredential.user.uid;
+            // Salvar dados do utilizador
+            db.ref('users/' + uid).set({
+              name: username,
+              username: username,
+              email: email
+            });
+            // Salvar username para UID
+            db.ref('usernames/' + username).set(uid);
+            localStorage.setItem('pixelgram_user_name', username);
+          })
+          .catch(e => {
+            document.getElementById('register-error').textContent = 'Erro: ' + e.message;
+          });
+      });
     }
 
     auth.onAuthStateChanged(user => {

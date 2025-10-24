@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<title>Criar publicação — PixelGram</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+  body{font-family:Arial,Helvetica,sans-serif;background:#fafafa;margin:0;padding:24px}
+  .card{max-width:720px;margin:24px auto;background:#fff;padding:16px;border-radius:8px}
+  input,textarea{width:100%;padding:8px;border:1px solid #ddd;border-radius:6px;margin-top:8px}
+  .btn{background:#007bff;color:#fff;border:none;padding:10px 14px;border-radius:6px;cursor:pointer;margin-top:10px}
+  .small{font-size:13px;color:#666;margin-top:8px}
+</style>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+</head>
+<body>
+  <div class="card" id="card" style="display:none">
+    <h2>Nova publicação</h2>
+    <input type="file" id="media" accept="image/*,video/*" />
+    <input type="text" id="caption" placeholder="Legenda (opcional)" />
+    <button id="publish" class="btn">Publicar</button>
+    <div id="info" class="small"></div>
+    <div style="margin-top:12px"><a href="../index.html">← Voltar ao feed</a></div>
+  </div>
+  <div id="loading" style="text-align:center;padding:40px">A carregar…</div>
+
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyBEesXKUPQibsTXT48pQmL0yfOEHNwE85I",
+    authDomain: "pixelgram-fd1bf.firebaseapp.com",
+    databaseURL: "https://pixelgram-fd1bf-default-rtdb.firebaseio.com",
+    projectId: "pixelgram-fd1bf",
+    storageBucket: "pixelgram-fd1bf.firebasestorage.app",
+    messagingSenderId: "526005169331",
+    appId: "1:526005169331:web:7717c5a46a653e1ddc14c6",
+    measurementId: "G-B97XPZM2FN"
+  };
+  firebase.initializeApp(firebaseConfig);
+  const auth = firebase.auth();
+  const db = firebase.database();
+
+  const CLOUDINARY_URL = 'https://api.cloudinary.com/v1_1/dg5zjs1qh/upload';
+  const CLOUDINARY_PRESET = 'pixelgram_unsigned';
+
+  function q(id){ return document.getElementById(id); }
+  auth.onAuthStateChanged(user=>{
+    if (!user) return window.location.href = '../login/index.html';
+    q('card').style.display = '';
+    q('loading').style.display = 'none';
+  });
+
+  q('publish').onclick = async () => {
+    const user = auth.currentUser;
+    if (!user) return window.location.href = '../login/index.html';
+    const fileEl = q('media');
+    const caption = q('caption').value.trim();
+    if (!fileEl.files[0]) return q('info').textContent = 'Escolha um ficheiro.';
+    const file = fileEl.files[0];
+    q('info').textContent = 'A carregar...';
+
+    const fd = new FormData();
+    fd.append('file', file);
+    fd.append('upload_preset', CLOUDINARY_PRESET);
+
+    try {
+      const res = await fetch(CLOUDINARY_URL, { method:'POST', body:fd });
+      const text = await res.text();
+      let data;
+      try { data = JSON.parse(text); } catch(e) { data = { raw:text }; }
+      if (!res.ok || !data.secure_url) throw new Error((data && data.error && data.error.message) ? data.error.message : 'Upload falhou');
+      const mediaUrl = data.secure_url;
+      const mediaType = file.type.startsWith('image/') ? 'image' : 'video';
+      const nameSnap = await db.ref('users/' + user.uid + '/name').once('value');
+      const post = {
+        uid: user.uid,
+        userName: nameSnap.val() || user.email,
+        avatar: '',
+        mediaUrl,
+        mediaType,
+        caption,
+        timestamp: Date.now()
+      };
+      await db.ref('posts').push(post);
+      q('info').textContent = 'Publicado com sucesso!';
+      fileEl.value = ''; q('caption').value = '';
+      setTimeout(()=> window.location.href = '../index.html', 800);
+    } catch (err) {
+      console.error(err);
+      q('info').textContent = 'Erro: ' + (err.message || '');
+      alert('Erro ao publicar: ' + (err.message || 'ver console'));
+    }
+  };
+</script>
+</body>
+</html>

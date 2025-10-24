@@ -28,79 +28,53 @@
       gap: 18px;
       align-items: center;
     }
-    .login-container h2 {
-      color: #2d3a4b;
-      margin: 0 0 12px 0;
-      font-size: 1.6rem;
-      letter-spacing: 1px;
-    }
+    .login-container h2 { color:#2d3a4b;margin:0 0 12px 0;font-size:1.6rem;letter-spacing:1px; }
     .login-container input {
-      width: 100%;
-      border: 1px solid #d1d5db;
-      border-radius: 6px;
-      padding: 8px 12px;
-      font-size: 15px;
-      outline: none;
-      transition: border 0.2s;
-      margin-bottom: 10px;
+      width:100%;border:1px solid #d1d5db;border-radius:6px;padding:8px 12px;font-size:15px;outline:none;transition:border .2s;margin-bottom:8px;
     }
-    .login-container input:focus {
-      border: 1.5px solid #3498db;
-    }
+    .login-container input:focus { border:1.5px solid #3498db; }
     .login-container button {
-      width: 100%;
-      background: #3498db;
-      color: #fff;
-      border: none;
-      border-radius: 6px;
-      padding: 10px 0;
-      font-size: 16px;
-      cursor: pointer;
-      transition: background 0.2s;
-      margin-bottom: 8px;
+      width:100%;background:#3498db;color:#fff;border:none;border-radius:6px;padding:10px 0;font-size:16px;cursor:pointer;
     }
-    .login-container button:last-child {
-      background: #888;
-    }
-    .login-container button:hover {
-      background: #217dbb;
-    }
-    .login-container .error {
-      color: #e74c3c;
-      font-size: 14px;
-      margin-bottom: 8px;
-      text-align: center;
-    }
+    .login-container button.secondary { background:#888;margin-top:6px }
+    .error { color:#e74c3c;font-size:14px;text-align:center }
+    .small { font-size:13px;color:#666;text-align:center }
   </style>
+
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
 </head>
 <body>
   <div class="login-container">
-    <h2>PixelGram Login</h2>
+    <h2>PixelGram</h2>
+
     <div id="login-form">
       <input type="email" id="login-email" placeholder="Email" />
       <input type="password" id="login-password" placeholder="Senha" />
       <button onclick="login()">Entrar</button>
-      <button onclick="showRegister()">Criar Conta</button>
+      <button class="secondary" onclick="showRegister()">Criar Conta</button>
       <div id="login-error" class="error"></div>
     </div>
-    <div id="register-form" style="display:none;">
-      <input type="text" id="register-username" placeholder="Nome de utilizador" required />
+
+    <div id="register-form" style="display:none">
+      <input type="text" id="register-username" placeholder="Nome de utilizador (único)" />
       <input type="email" id="register-email" placeholder="Email" />
       <input type="password" id="register-password" placeholder="Senha" />
-      <button onclick="register()">Inscrever</button>
-      <button onclick="hideRegister()" style="background:#888;">Cancelar</button>
+      <button onclick="startRegister()">Inscrever</button>
+      <button class="secondary" onclick="hideRegister()">Cancelar</button>
       <div id="register-error" class="error"></div>
+      <div class="small">Após criar conta será redirecionado para completar o perfil.</div>
     </div>
+
     <div id="user-info" style="display:none;">
       <span id="user-name"></span>
       <button onclick="logout()" style="margin-left:10px;width:auto;padding:6px 16px;">Sair</button>
     </div>
   </div>
+
   <script>
-    // Configurações do seu Firebase
+    // Firebase config
     const firebaseConfig = {
       apiKey: "AIzaSyBEesXKUPQibsTXT48pQmL0yfOEHNwE85I",
       authDomain: "pixelgram-fd1bf.firebaseapp.com",
@@ -112,96 +86,109 @@
       measurementId: "G-B97XPZM2FN"
     };
     firebase.initializeApp(firebaseConfig);
-    const auth = firebase.auth();
     const db = firebase.database();
+    const auth = firebase.auth();
 
-    function login() {
-      const email = document.getElementById('login-email').value;
-      const password = document.getElementById('login-password').value;
-      auth.signInWithEmailAndPassword(email, password)
-        .then(userCredential => {
-          // Buscar nome do usuário no database
-          const uid = userCredential.user.uid;
-          db.ref('users/' + uid + '/name').once('value').then(snapshot => {
-            const name = snapshot.val() || userCredential.user.email;
-            localStorage.setItem('pixelgram_user_name', name);
-          });
-        })
-        .catch(e => {
-          document.getElementById('login-error').textContent = 'Erro: ' + e.message;
-        });
+    function showRegister(){
+      document.getElementById('login-form').style.display = 'none';
+      document.getElementById('register-form').style.display = '';
+      clearErrors();
+    }
+    function hideRegister(){
+      document.getElementById('register-form').style.display = 'none';
+      document.getElementById('login-form').style.display = '';
+      clearErrors();
+    }
+    function clearErrors(){
+      document.getElementById('login-error').textContent = '';
+      document.getElementById('register-error').textContent = '';
     }
 
-    function logout() {
+    async function login(){
+      clearErrors();
+      const email = document.getElementById('login-email').value.trim();
+      const password = document.getElementById('login-password').value;
+      if (!email || !password) { document.getElementById('login-error').textContent = 'Preencha email e senha.'; return; }
+      try {
+        const cred = await auth.signInWithEmailAndPassword(email, password);
+        const uid = cred.user.uid;
+        const snap = await db.ref('users/' + uid + '/profileComplete').once('value');
+        const complete = snap.val();
+        // redireciona conforme estado do perfil
+        if (complete === false) window.location.href = '../edit-profile.html';
+        else window.location.href = '../index.html';
+      } catch(e){
+        document.getElementById('login-error').textContent = 'Erro: ' + (e.message || e);
+      }
+    }
+
+    function logout(){
       auth.signOut();
       localStorage.removeItem('pixelgram_user_name');
     }
 
-    function showRegister() {
-      document.getElementById('login-form').style.display = 'none';
-      document.getElementById('register-form').style.display = '';
-    }
-
-    function hideRegister() {
-      document.getElementById('register-form').style.display = 'none';
-      document.getElementById('login-form').style.display = '';
-      document.getElementById('register-error').textContent = '';
-    }
-
-    function register() {
-      const username = document.getElementById('register-username').value.trim().toLowerCase();
-      const email = document.getElementById('register-email').value;
+    // iniciar registo: valida username localmente e chama registerUser
+    async function startRegister(){
+      clearErrors();
+      const username = (document.getElementById('register-username').value || '').trim().toLowerCase();
+      const email = (document.getElementById('register-email').value || '').trim();
       const password = document.getElementById('register-password').value;
-      if (!username) {
-        document.getElementById('register-error').textContent = 'Por favor, insira um nome de utilizador.';
-        return;
+      if (!username) { document.getElementById('register-error').textContent = 'Escolha um nome de utilizador.'; return; }
+      if (!email || !password) { document.getElementById('register-error').textContent = 'Preencha email e senha.'; return; }
+      // verifica disponibilidade e cria conta
+      try {
+        const snap = await db.ref('usernames/' + username).once('value');
+        if (snap.exists()) { document.getElementById('register-error').textContent = 'Nome de utilizador já existe.'; return; }
+        await registerUser(email, password, username);
+      } catch(err){
+        document.getElementById('register-error').textContent = 'Erro: ' + (err.message || err);
+        console.error(err);
       }
-      // Verificar se já existe
-      firebase.database().ref('usernames/' + username).once('value').then(snap => {
-        if (snap.exists()) {
-          alert('Nome de utilizador já existe!');
-          return;
-        }
-        // Criar utilizador normalmente
-        auth.createUserWithEmailAndPassword(email, password)
-          .then(userCredential => {
-            const uid = userCredential.user.uid;
-            // Salvar dados do utilizador
-            db.ref('users/' + uid).set({
-              name: username,
-              username: username,
-              email: email
-            });
-            // Salvar username para UID
-            db.ref('usernames/' + username).set(uid);
-            localStorage.setItem('pixelgram_user_name', username);
-          })
-          .catch(e => {
-            document.getElementById('register-error').textContent = 'Erro: ' + e.message;
-          });
-      });
     }
 
-    auth.onAuthStateChanged(user => {
-      if (user) {
-        // Buscar nome do usuário no database
-        db.ref('users/' + user.uid + '/name').once('value').then(snapshot => {
-          const name = snapshot.val() || user.email;
-          document.getElementById('user-name').textContent = name;
-          localStorage.setItem('pixelgram_user_name', name);
+    // cria conta e obriga a completar perfil
+    async function registerUser(email, password, desiredUsername){
+      try {
+        const cred = await auth.createUserWithEmailAndPassword(email, password);
+        const uid = cred.user.uid;
+        const username = (desiredUsername || '').trim().toLowerCase();
+        // grava dados básicos e marca profileComplete = false
+        await db.ref('users/' + uid).set({
+          name: username,
+          username: username,
+          email: email,
+          profileComplete: false,
+          createdAt: Date.now()
         });
-        document.getElementById('login-form').style.display = 'none';
-        document.getElementById('register-form').style.display = 'none';
-        document.getElementById('user-info').style.display = '';
-        // Redireciona para a página raiz após sessão bem sucedida
-        setTimeout(() => {
-          window.location.href = "../index.html";
-        }, 800);
+        await db.ref('usernames/' + username).set(uid);
+        // redireciona para edição de perfil
+        window.location.href = '../edit-profile.html';
+      } catch(err) {
+        document.getElementById('register-error').textContent = 'Erro: ' + (err.message || err);
+        console.error(err);
+      }
+    }
+
+    // state observer: mostra info enquanto espera e garante redirect se já autenticado
+    auth.onAuthStateChanged(async user => {
+      if (user) {
+        const uid = user.uid;
+        const nameSnap = await db.ref('users/' + uid + '/name').once('value');
+        const name = nameSnap.val() || user.email;
+        document.getElementById('user-name').textContent = name;
+        localStorage.setItem('pixelgram_user_name', name);
+        // se chegou aqui sem redirecionamento (reload), garante comportamento:
+        const profileSnap = await db.ref('users/' + uid + '/profileComplete').once('value');
+        if (profileSnap.exists() && profileSnap.val() === false) {
+          // novo utilizador sem perfil completo
+          window.location.href = '../edit-profile.html';
+        } else {
+          window.location.href = '../index.html';
+        }
       } else {
         document.getElementById('login-form').style.display = '';
         document.getElementById('register-form').style.display = 'none';
         document.getElementById('user-info').style.display = 'none';
-        document.getElementById('login-error').textContent = '';
       }
     });
   </script>

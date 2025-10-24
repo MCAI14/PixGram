@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<title>Editar Perfil — PixelGram</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+  body{font-family:Arial,Helvetica,sans-serif;background:#fafafa;color:#222;padding:20px}
+  .card{max-width:640px;margin:20px auto;background:#fff;padding:18px;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,0.04)}
+  input,textarea{width:100%;padding:10px;border:1px solid #ddd;border-radius:6px;margin-top:8px}
+  .btn{background:#007bff;color:#fff;border:none;padding:10px 14px;border-radius:6px;cursor:pointer;margin-top:10px}
+  .small{font-size:13px;color:#666;margin-top:6px}
+</style>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+</head>
+<body>
+  <div class="card" id="card" style="display:none">
+    <h2>Completar/Editar Perfil</h2>
+    <label>Nome público</label>
+    <input id="name" placeholder="Ex: Maurício">
+    <label>Nome de utilizador (único)</label>
+    <input id="username" placeholder="Ex: mauricio">
+    <div class="small">O username será usado na URL: /user/username</div>
+    <label>Avatar (URL)</label>
+    <input id="avatar" placeholder="https://...">
+    <label>Bio</label>
+    <textarea id="bio" rows="3" placeholder="Fale sobre si..."></textarea>
+    <button class="btn" id="saveBtn">Guardar perfil</button>
+    <div id="info" class="small"></div>
+  </div>
+  <div id="loading">A carregar... (inicie sessão se necessário)</div>
+
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyBEesXKUPQibsTXT48pQmL0yfOEHNwE85I",
+    authDomain: "pixelgram-fd1bf.firebaseapp.com",
+    databaseURL: "https://pixelgram-fd1bf-default-rtdb.firebaseio.com",
+    projectId: "pixelgram-fd1bf",
+    storageBucket: "pixelgram-fd1bf.firebasestorage.app",
+    messagingSenderId: "526005169331",
+    appId: "1:526005169331:web:7717c5a46a653e1ddc14c6",
+    measurementId: "G-B97XPZM2FN"
+  };
+  firebase.initializeApp(firebaseConfig);
+  const auth = firebase.auth();
+  const db = firebase.database();
+
+  function q(id){ return document.getElementById(id); }
+  function showInfo(t){ q('info').textContent = t; }
+
+  auth.onAuthStateChanged(async user => {
+    if (!user) return window.location.href = "login/index.html";
+    const uid = user.uid;
+    const snap = await db.ref('users/' + uid).once('value');
+    const u = snap.val() || {};
+    q('name').value = u.name || '';
+    q('username').value = (u.username || '').toLowerCase();
+    q('avatar').value = u.avatar || '';
+    q('bio').value = u.bio || '';
+    q('card').style.display = '';
+    q('loading').style.display = 'none';
+  });
+
+  q('saveBtn').onclick = async () => {
+    const user = auth.currentUser;
+    if (!user) return window.location.href = "login/index.html";
+    const uid = user.uid;
+    const newName = q('name').value.trim();
+    let newUsername = (q('username').value || '').trim().toLowerCase();
+    const avatar = q('avatar').value.trim();
+    const bio = q('bio').value.trim();
+
+    if (!newUsername) return showInfo('Escolha um nome de utilizador.');
+    showInfo('A guardar...');
+
+    try {
+      // verifica se username está em uso por outro uid
+      const snap = await db.ref('usernames/' + newUsername).once('value');
+      const existingUid = snap.val();
+      const currentSnap = await db.ref('users/' + uid + '/username').once('value');
+      const currentUsername = (currentSnap.val() || '').toLowerCase();
+
+      if (existingUid && existingUid !== uid) {
+        showInfo('Nome de utilizador já está em uso por outra conta.');
+        return;
+      }
+
+      // se username mudou, atualiza mapeamento (remove antigo, cria novo)
+      if (currentUsername && currentUsername !== newUsername) {
+        await db.ref('usernames/' + currentUsername).remove();
+      }
+      await db.ref('usernames/' + newUsername).set(uid);
+
+      // grava dados do perfil
+      await db.ref('users/' + uid).update({
+        name: newName,
+        username: newUsername,
+        avatar: avatar || '',
+        bio: bio || '',
+        profileComplete: true,
+        updatedAt: Date.now()
+      });
+
+      showInfo('Perfil guardado.');
+      // redireciona para a página pública do perfil
+      setTimeout(()=> window.location.href = '/user/' + encodeURIComponent(newUsername), 700);
+    } catch (err) {
+      console.error(err);
+      showInfo('Erro ao guardar perfil.');
+    }
+  };
+</script>
+</body>
+</html>

@@ -1,23 +1,188 @@
-<img id="perfil-avatar" width="120" height="120" style="border-radius:50%;">
-<h2 id="perfil-nome"></h2>
-<p id="perfil-bio"></p>
-<!-- Lista de posts do utilizador -->
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="utf-8" />
+  <title>PixelGram — Perfil</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <style>
+    body{font-family:Arial,Helvetica,sans-serif;margin:0;background:#fafafa;color:#222}
+    .container{max-width:1000px;margin:28px auto;display:flex;gap:20px;align-items:flex-start}
+    .profile{width:320px;background:#fff;padding:18px;border-radius:10px;box-shadow:0 2px 8px rgba(0,0,0,0.04)}
+    .profile .avatar{width:120px;height:120px;border-radius:50%;background:#eee;margin:0 auto 12px;display:block;object-fit:cover}
+    .profile h2{text-align:center;margin:6px 0}
+    .profile p{color:#666;font-size:14px;text-align:center}
+    .follow-btn{display:block;margin:12px auto;padding:8px 16px;border-radius:8px;border:none;cursor:pointer}
+    .feed{flex:1}
+    .post{background:#fff;border-radius:10px;padding:10px;margin-bottom:14px;box-shadow:0 2px 8px rgba(0,0,0,0.03)}
+    .post img,.post video{width:100%;border-radius:8px;max-height:480px;object-fit:cover}
+    .meta{font-size:13px;color:#666;margin-top:8px}
+    .back{display:inline-block;margin-bottom:12px;color:#007bff;text-decoration:none}
+    .notfound{padding:40px;text-align:center;color:#999}
+  </style>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+</head>
+<body>
+  <div class="container" id="app" style="display:none">
+    <aside class="profile" id="profile-card">
+      <img id="profile-avatar" class="avatar" src="" alt="Avatar" />
+      <h2 id="profile-name">—</h2>
+      <p id="profile-username" style="font-weight:bold;text-align:center;color:#007bff"></p>
+      <p id="profile-bio"></p>
+      <div style="display:flex;justify-content:space-around;margin-top:8px">
+        <div><strong id="followers-count">0</strong><div style="font-size:12px;color:#777">Seguidores</div></div>
+        <div><strong id="following-count">0</strong><div style="font-size:12px;color:#777">Seguindo</div></div>
+      </div>
+      <button id="follow-btn" class="follow-btn" style="background:#007bff;color:#fff;display:none">Seguir</button>
+      <a href="../index.html" class="back">← Voltar ao feed</a>
+      <div id="profile-info" style="text-align:center;color:#27ae60;margin-top:8px"></div>
+    </aside>
+
+    <main class="feed">
+      <div id="posts-list"></div>
+    </main>
+  </div>
+
+  <div id="loading" style="padding:40px;text-align:center">A carregar perfil…</div>
+
 <script>
-// Exemplo para user/index.html
-const username = window.location.pathname.split('/').pop().toLowerCase();
-firebase.database().ref('usernames/' + username).once('value').then(snap => {
-  const uid = snap.val();
-  if (!uid) {
-    // Perfil não encontrado
-    document.body.innerHTML = '<h2>Perfil não encontrado!</h2>';
-    return;
+  // Firebase config (mesmas credenciais do projeto)
+  const firebaseConfig = {
+    apiKey: "AIzaSyBEesXKUPQibsTXT48pQmL0yfOEHNwE85I",
+    authDomain: "pixelgram-fd1bf.firebaseapp.com",
+    databaseURL: "https://pixelgram-fd1bf-default-rtdb.firebaseio.com",
+    projectId: "pixelgram-fd1bf",
+    storageBucket: "pixelgram-fd1bf.firebasestorage.app",
+    messagingSenderId: "526005169331",
+    appId: "1:526005169331:web:7717c5a46a653e1ddc14c6",
+    measurementId: "G-B97XPZM2FN"
+  };
+  firebase.initializeApp(firebaseConfig);
+  const auth = firebase.auth();
+  const db = firebase.database();
+
+  // Helper
+  function escapeHtml(s){ if(!s) return ''; return String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+  // Determine username from URL: /users/USERNAME
+  const pathParts = window.location.pathname.split('/').filter(Boolean);
+  let username = pathParts[pathParts.length - 1] || '';
+  username = decodeURIComponent(username);
+
+  if (!username) {
+    document.getElementById('loading').innerHTML = '<div class="notfound">Nome de utilizador inválido na URL.</div>';
+  } else {
+    // Try to load username -> uid mapping (usernames/{username}) first.
+    db.ref('usernames/' + username.toLowerCase()).once('value').then(snap => {
+      const uid = snap.val();
+      if (!uid) {
+        // Try direct lookup by name (fallback) — some projects keep username in users/{uid}/username
+        // Search users for matching username or name (case-insensitive)
+        return db.ref('users').orderByChild('username').equalTo(username).once('value').then(r=>{
+          if (r.exists()) {
+            const firstKey = Object.keys(r.val())[0];
+            return firstKey;
+          }
+          // not found
+          return null;
+        });
+      }
+      return uid;
+    }).then(async uid => {
+      if (!uid) {
+        document.getElementById('loading').innerHTML = '<div class="notfound">Perfil não encontrado.</div>';
+        return;
+      }
+
+      // Load profile data
+      const userSnap = await db.ref('users/' + uid).once('value');
+      const user = userSnap.val() || {};
+      // Render profile
+      document.getElementById('profile-avatar').src = user.avatar || 'https://via.placeholder.com/120?text=Avatar';
+      document.getElementById('profile-name').textContent = user.name || user.username || username;
+      document.getElementById('profile-username').textContent = '@' + (user.username || username);
+      document.getElementById('profile-bio').textContent = user.bio || '';
+      document.getElementById('followers-count').textContent = user.followers ? Object.keys(user.followers).length : 0;
+      document.getElementById('following-count').textContent = user.following ? Object.keys(user.following).length : 0;
+
+      document.getElementById('loading').style.display = 'none';
+      document.getElementById('app').style.display = '';
+
+      // Posts: query posts where uid == profile uid
+      const postsRef = db.ref('posts').orderByChild('uid').equalTo(uid);
+      postsRef.on('value', snap => {
+        const list = document.getElementById('posts-list');
+        list.innerHTML = '';
+        const posts = [];
+        snap.forEach(c => posts.push({ id: c.key, ...c.val() }));
+        posts.sort((a,b)=>b.timestamp - a.timestamp);
+        if (!posts.length) list.innerHTML = '<div style="padding:20px;background:#fff;border-radius:10px;color:#777">Sem publicações</div>';
+        posts.forEach(p => {
+          const el = document.createElement('div'); el.className='post';
+          const time = p.timestamp ? new Date(p.timestamp).toLocaleString() : '';
+          let mediaHtml = '';
+          if (p.mediaType === 'video') mediaHtml = `<video controls src="${escapeHtml(p.mediaUrl)}"></video>`;
+          else if (p.mediaUrl) mediaHtml = `<img src="${escapeHtml(p.mediaUrl)}" />`;
+          el.innerHTML = `
+            <div style="font-weight:bold">${escapeHtml(p.userName||user.name||user.username)}</div>
+            <div style="font-size:12px;color:#777">${escapeHtml(time)}</div>
+            ${mediaHtml}
+            <div class="meta"><strong>${escapeHtml(p.userName||'')}</strong> ${escapeHtml(p.caption||'')}</div>
+          `;
+          // attach comments/likes quick actions
+          const actions = document.createElement('div'); actions.style.marginTop='8px';
+          const commentsLink = document.createElement('a'); commentsLink.href='#'; commentsLink.textContent='Comentários'; commentsLink.style.marginRight='12px';
+          commentsLink.onclick = (e)=>{ e.preventDefault(); alert('Abra o post para ver comentários (a implementar)'); };
+          actions.appendChild(commentsLink);
+          el.appendChild(actions);
+          list.appendChild(el);
+        });
+      });
+
+      // Follow/unfollow logic
+      auth.onAuthStateChanged(async me => {
+        const followBtn = document.getElementById('follow-btn');
+        if (!me) {
+          followBtn.style.display = 'none';
+          return;
+        }
+        if (me.uid === uid) { followBtn.style.display = 'none'; return; } // hide for owner
+        followBtn.style.display = '';
+        const followerRef = db.ref('users/' + uid + '/followers/' + me.uid);
+        const followingRef = db.ref('users/' + me.uid + '/following/' + uid);
+        // set initial state
+        const exists = (await followerRef.once('value')).exists();
+        followBtn.textContent = exists ? 'A seguir' : 'Seguir';
+        followBtn.style.background = exists ? '#eee' : '#007bff';
+        followBtn.style.color = exists ? '#333' : '#fff';
+
+        followBtn.onclick = async () => {
+          const now = Date.now();
+          const isFollowing = (await followerRef.once('value')).exists();
+          if (isFollowing) {
+            // unfollow
+            await followerRef.remove();
+            await followingRef.remove();
+            followBtn.textContent = 'Seguir';
+            followBtn.style.background = '#007bff'; followBtn.style.color='#fff';
+          } else {
+            await followerRef.set(true);
+            await followingRef.set(true);
+            followBtn.textContent = 'A seguir';
+            followBtn.style.background = '#eee'; followBtn.style.color='#333';
+          }
+          // update counts display (simple refresh)
+          const u = (await db.ref('users/' + uid).once('value')).val() || {};
+          document.getElementById('followers-count').textContent = u.followers ? Object.keys(u.followers).length : 0;
+        };
+      });
+
+    }).catch(err=>{
+      console.error(err);
+      document.getElementById('loading').innerHTML = '<div class="notfound">Erro ao carregar perfil.</div>';
+    });
   }
-  firebase.database().ref('users/' + uid).once('value').then(snap2 => {
-    const user = snap2.val();
-    document.getElementById('perfil-nome').textContent = user.name;
-    document.getElementById('perfil-avatar').src = user.avatar || 'default.jpg';
-    document.getElementById('perfil-bio').textContent = user.bio || '';
-    // Carregue posts do utilizador...
-  });
-});
 </script>
+</body>
+</html>

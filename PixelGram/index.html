@@ -1,500 +1,263 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt">
 <head>
-  <meta charset="UTF-8">
-  <title>Chat | PixelGram</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="utf-8" />
+  <title>PixelGram - Feed</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
   <style>
-    body {
-      font-family: 'Segoe UI', Arial, sans-serif;
-      background: #f7f9fd;
-      margin: 0;
-      padding: 0;
-    }
-    .main-flex {
-      min-height: 100vh;
-      display: flex;
-      align-items: flex-start;
-      justify-content: center;
-      padding-top: 40px;
-      gap: 32px;
-    }
-    .sidebar-historico {
-      background: #fff;
-      border-radius: 14px;
-      box-shadow: 0 4px 24px rgba(44, 62, 80, 0.08);
-      padding: 24px 18px 18px 18px;
-      width: 220px;
-      min-height: 320px;
-      display: flex;
-      flex-direction: column;
-      align-items: stretch;
-      gap: 10px;
-    }
-    .sidebar-historico h3 {
-      margin: 0 0 10px 0;
-      font-size: 1.1rem;
-      color: #007bff;
-      text-align: center;
-    }
-    .historico-list {
-      flex: 1;
-      overflow-y: auto;
-      font-size: 0.98rem;
-      color: #222;
-      display: flex;
-      flex-direction: column;
-      gap: 7px;
-    }
-    .historico-item {
-      background: #eaf1fb;
-      border-radius: 6px;
-      padding: 7px 10px;
-      cursor: pointer;
-      transition: background 0.2s;
-      word-break: break-all;
-    }
-    .historico-item:hover {
-      background: #d1eaff;
-    }
-    .chat-container {
-      background: #fff;
-      border-radius: 14px;
-      box-shadow: 0 4px 24px rgba(44, 62, 80, 0.08);
-      padding: 32px 24px 24px 24px;
-      width: 100%;
-      max-width: 420px;
-      display: flex;
-      flex-direction: column;
-      gap: 18px;
-      align-items: stretch;
-    }
-    .user-bar {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      margin-bottom: 8px;
-      justify-content: space-between;
-    }
-    .user-info {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-    .logout-btn {
-      background: #e74c3c;
-      color: #fff;
-      border: none;
-      border-radius: 5px;
-      padding: 5px 12px;
-      font-size: 0.97rem;
-      cursor: pointer;
-      transition: background 0.2s;
-    }
-    .logout-btn:hover {
-      background: #c0392b;
-    }
-    .chat-type-bar {
-      display: flex;
-      gap: 8px;
-      margin-bottom: 8px;
-    }
-    .chat-type-bar button {
-      flex: 1;
-      padding: 8px 0;
-      border: none;
-      border-radius: 6px;
-      background: #eaf1fb;
-      color: #007bff;
-      font-weight: bold;
-      cursor: pointer;
-      transition: background 0.2s;
-    }
-    .chat-type-bar button.active,
-    .chat-type-bar button:hover {
-      background: #007bff;
-      color: #fff;
-    }
-    .sala-info {
-      color: #007bff;
-      font-size: 1.05rem;
-      margin-bottom: 6px;
-      min-height: 18px;
-    }
-    #chat {
-      background: #f4f6fb;
-      border-radius: 8px;
-      min-height: 260px;
-      max-height: 320px;
-      overflow-y: auto;
-      padding: 12px;
-      margin-bottom: 10px;
-      font-size: 1rem;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
-    .msg {
-      padding: 7px 12px;
-      border-radius: 7px;
-      background: #eaf1fb;
-      word-break: break-word;
-      max-width: 90%;
-      margin-bottom: 2px;
-      display: inline-block;
-    }
-    .msg.minha-msg {
-      background: #d1f7c4;
-      align-self: flex-end;
-    }
-    .input-bar {
-      display: flex;
-      gap: 8px;
-      margin-top: 6px;
-    }
-    .input-bar input[type="text"] {
-      flex: 1;
-      padding: 8px 10px;
-      border-radius: 6px;
-      border: 1px solid #d1d5db;
-      font-size: 1rem;
-      outline: none;
-    }
-    .input-bar button {
-      padding: 8px 18px;
-      border-radius: 6px;
-      border: none;
-      background: #007bff;
-      color: #fff;
-      font-weight: bold;
-      cursor: pointer;
-      transition: background 0.2s;
-    }
-    .input-bar button:hover {
-      background: #0056b3;
-    }
+    body{font-family:Arial,Helvetica,sans-serif;margin:0;background:#fafafa;color:#222}
+    .main{max-width:1000px;margin:24px auto;display:flex;gap:20px;align-items:flex-start}
+    .feed{flex:1}
+    .post{background:#fff;border-radius:10px;padding:12px;margin-bottom:16px;box-shadow:0 2px 8px rgba(0,0,0,0.03)}
+    .post-header{display:flex;align-items:center;gap:12px;margin-bottom:8px}
+    .avatar{width:44px;height:44px;border-radius:50%;background:#ddd}
+    .post-media{width:100%;max-height:480px;object-fit:cover;border-radius:8px;margin:8px 0}
+    .actions{display:flex;gap:10px;color:#333;margin-top:8px}
+    .comments{margin-top:10px}
+    .comment{font-size:14px;margin-bottom:6px}
+    .create-post{background:#fff;padding:12px;border-radius:10px;margin-bottom:16px}
+    .create-post input[type="text"]{width:100%;padding:8px;border:1px solid #ddd;border-radius:6px;margin-top:8px}
+    .btn{background:#007bff;color:#fff;border:none;padding:8px 12px;border-radius:6px;cursor:pointer}
   </style>
+
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
 </head>
 <body>
-  <div class="main-flex">
-    <aside class="sidebar-historico">
-      <h3>Meu Histórico</h3>
-      <div class="historico-list" id="historico-list">
-        <div style="color:#aaa;text-align:center;">Nenhuma mensagem</div>
+  <div class="main" id="main-layout" style="display:none">
+    <main class="feed">
+      <div class="create-post" id="create-post-area" style="display:none">
+        <div><strong>Nova publicação</strong></div>
+        <input type="file" id="media" accept="image/*,video/*" />
+        <input type="text" id="caption" placeholder="Escreve uma legenda..." />
+        <div style="margin-top:8px"><button class="btn" id="publish-btn">Publicar</button></div>
+        <div id="create-info" style="color:#27ae60;margin-top:8px"></div>
+      </div>
+
+      <section id="feed"></section>
+    </main>
+
+    <aside style="width:260px">
+      <div style="background:#fff;padding:12px;border-radius:10px;margin-bottom:16px">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <strong id="user-name">Utilizador</strong>
+          <button id="logout-btn" style="background:#e74c3c;color:#fff;border:none;padding:6px 10px;border-radius:6px;cursor:pointer">Sair</button>
+        </div>
+      </div>
+
+      <div style="background:#fff;padding:12px;border-radius:10px">
+        <div style="font-weight:bold;margin-bottom:8px">Sugestões</div>
+        <div id="suggestions">—</div>
       </div>
     </aside>
-    <div class="chat-container">
-      <div class="user-bar">
-        <div class="user-info">
-          <span id="usuario-nome" style="font-weight:bold;"></span>
-        </div>
-        <div style="display:flex;gap:8px;">
-          <button class="logout-btn" onclick="logout()">Sair</button>
-          <button class="settings-btn" onclick="window.location.href='definicoes.html'" title="Definições" style="background:#eee;color:#007bff;border:none;padding:5px 12px;border-radius:5px;cursor:pointer;font-weight:bold;">
-            ⚙️
-          </button>
-        </div>
-      </div>
-      <div class="chat-type-bar">
-        <button id="btn-publico" onclick="mudarTipo('publico')" class="active">Chat Público</button>
-        <button id="btn-privado" onclick="mudarTipo('privado')">Chat Privado</button>
-        <button id="btn-pessoal" onclick="mudarTipo('pessoal')">Conversas Pessoais</button>
-      </div>
-      <div class="sala-info" id="sala-info"></div>
-      <div id="chat"></div>
-      <div class="input-bar">
-        <input type="text" id="mensagem" placeholder="Digite sua mensagem..." autocomplete="off" />
-        <button id="enviar">Enviar</button>
-      </div>
-    </div>
   </div>
-  <script>
-    // Configurações do seu Firebase
-    const firebaseConfig = {
-      apiKey: "AIzaSyBEesXKUPQibsTXT48pQmL0yfOEHNwE85I",
-      authDomain: "pixelgram-fd1bf.firebaseapp.com",
-      databaseURL: "https://pixelgram-fd1bf-default-rtdb.firebaseio.com",
-      projectId: "pixelgram-fd1bf",
-      storageBucket: "pixelgram-fd1bf.firebasestorage.app",
-      messagingSenderId: "526005169331",
-      appId: "1:526005169331:web:7717c5a46a653e1ddc14c6",
-      measurementId: "G-B97XPZM2FN"
+
+<script>
+  // Firebase config
+  const firebaseConfig = {
+    apiKey: "AIzaSyBEesXKUPQibsTXT48pQmL0yfOEHNwE85I",
+    authDomain: "pixelgram-fd1bf.firebaseapp.com",
+    databaseURL: "https://pixelgram-fd1bf-default-rtdb.firebaseio.com",
+    projectId: "pixelgram-fd1bf",
+    storageBucket: "pixelgram-fd1bf.firebasestorage.app",
+    messagingSenderId: "526005169331",
+    appId: "1:526005169331:web:7717c5a46a653e1ddc14c6",
+    measurementId: "G-B97XPZM2FN"
+  };
+  firebase.initializeApp(firebaseConfig);
+  const auth = firebase.auth();
+  const db = firebase.database();
+
+  // Cloudinary config (you provided)
+  const CLOUDINARY_URL = 'https://api.cloudinary.com/v1_1/dg5zjs1qh/upload';
+  const CLOUDINARY_PRESET = 'pixelgram_unsigned';
+
+  let currentUser = null;
+  auth.onAuthStateChanged(async user => {
+    if (!user) return window.location.href = "login/index.html";
+    currentUser = user;
+    // fetch display name from DB (we store username in users/{uid}/name)
+    const snap = await db.ref('users/' + user.uid + '/name').once('value');
+    const name = snap.val() || user.email || 'Utilizador';
+    document.getElementById('user-name').textContent = name;
+    document.getElementById('main-layout').style.display = '';
+    document.getElementById('create-post-area').style.display = '';
+    initFeed();
+    loadSuggestions();
+  });
+
+  document.getElementById('logout-btn').onclick = () => auth.signOut().then(()=>window.location.href='login/index.html');
+
+  // Publish: upload to Cloudinary then create DB post
+  document.getElementById('publish-btn').onclick = async () => {
+    const fileEl = document.getElementById('media');
+    const caption = document.getElementById('caption').value.trim();
+    if (!fileEl.files[0]) return alert('Escolha uma imagem ou vídeo.');
+    const file = fileEl.files[0];
+
+    document.getElementById('create-info').textContent = 'A carregar...';
+
+    const fd = new FormData();
+    fd.append('file', file);
+    fd.append('upload_preset', CLOUDINARY_PRESET);
+
+    try {
+      const res = await fetch(CLOUDINARY_URL, { method:'POST', body:fd });
+      const data = await res.json();
+      if (!data.secure_url) throw new Error('Upload falhou');
+      const mediaUrl = data.secure_url;
+      const mediaType = file.type.startsWith('image/') ? 'image' : 'video';
+      const post = {
+        uid: currentUser.uid,
+        userName: (await db.ref('users/' + currentUser.uid + '/name').once('value')).val() || currentUser.email,
+        avatar: '', // optional: store avatar url in users/{uid}/avatar
+        mediaUrl,
+        mediaType,
+        caption,
+        timestamp: Date.now()
+      };
+      const postRef = await db.ref('posts').push(post);
+      document.getElementById('create-info').textContent = 'Publicado com sucesso!';
+      fileEl.value = ''; document.getElementById('caption').value = '';
+      // feed updates automatically by listener
+    } catch(err) {
+      console.error(err);
+      document.getElementById('create-info').textContent = 'Erro ao publicar.';
+    }
+    setTimeout(()=>document.getElementById('create-info').textContent='',2000);
+  };
+
+  // Feed: realtime listener (last 50 posts)
+  let postsListener = null;
+  function initFeed(){
+    if (postsListener) db.ref('posts').off('value', postsListener);
+    postsListener = db.ref('posts').orderByChild('timestamp').limitToLast(50);
+    postsListener.on('value', snap => {
+      const feed = document.getElementById('feed');
+      feed.innerHTML = '';
+      const posts = [];
+      snap.forEach(child => posts.push({ id: child.key, ...child.val() }));
+      posts.sort((a,b)=>b.timestamp - a.timestamp);
+      posts.forEach(p => feed.appendChild(renderPost(p)));
+    });
+  }
+
+  function renderPost(p){
+    const el = document.createElement('div');
+    el.className = 'post';
+    const time = new Date(p.timestamp).toLocaleString();
+    const likeCountSpan = document.createElement('span');
+
+    // header
+    el.innerHTML = `
+      <div class="post-header">
+        <div class="avatar"></div>
+        <div>
+          <div style="font-weight:bold">${escapeHtml(p.userName||'')}</div>
+          <div style="font-size:12px;color:#888">${time}</div>
+        </div>
+      </div>
+    `;
+
+    // media
+    if (p.mediaType === 'video') {
+      const vid = document.createElement('video');
+      vid.controls = true; vid.className = 'post-media'; vid.src = p.mediaUrl;
+      el.appendChild(vid);
+    } else {
+      const img = document.createElement('img');
+      img.src = p.mediaUrl; img.className = 'post-media';
+      el.appendChild(img);
+    }
+
+    // caption
+    const caption = document.createElement('div');
+    caption.innerHTML = `<strong>${escapeHtml(p.userName||'')}</strong> ${escapeHtml(p.caption||'')}`;
+    el.appendChild(caption);
+
+    // actions
+    const actions = document.createElement('div'); actions.className='actions';
+    const likeBtn = document.createElement('button'); likeBtn.className='btn'; likeBtn.style.background='#fff'; likeBtn.style.color='#333';
+    likeBtn.textContent = '♡ Gostar';
+    actions.appendChild(likeBtn);
+    actions.appendChild(likeCountSpan);
+    const commentToggle = document.createElement('button'); commentToggle.className='btn'; commentToggle.style.background='#fff'; commentToggle.style.color='#333';
+    commentToggle.textContent = '💬 Comentários';
+    actions.appendChild(commentToggle);
+    el.appendChild(actions);
+
+    // comments area
+    const commentsDiv = document.createElement('div'); commentsDiv.className='comments'; commentsDiv.style.display='none';
+    const commentsList = document.createElement('div'); commentsList.id = 'comments-'+p.id;
+    const commentForm = document.createElement('form');
+    commentForm.onsubmit = (e)=>{ e.preventDefault(); addComment(p.id, commentForm.input.value); commentForm.input.value=''; };
+    commentForm.innerHTML = `<input type="text" name="input" placeholder="Adicione um comentário..." style="padding:6px;border:1px solid #ddd;border-radius:6px;width:80%" /> <button class="btn" style="padding:6px 8px">Publicar</button>`;
+    commentsDiv.appendChild(commentsList); commentsDiv.appendChild(commentForm); el.appendChild(commentsDiv);
+
+    // likes listener
+    const likesRef = db.ref('posts/' + p.id + '/likes');
+    likesRef.on('value', s=>{
+      const likes = s.val() || {};
+      const count = Object.keys(likes).length;
+      likeCountSpan.textContent = ' ' + count + ' gostos';
+      if (currentUser && likes[currentUser.uid]) likeBtn.textContent = '♥ Gostado'; else likeBtn.textContent = '♡ Gostar';
+    });
+
+    // comment listener
+    const commentsRef = db.ref('posts/' + p.id + '/comments').orderByChild('timestamp');
+    commentsRef.on('value', s=>{
+      commentsList.innerHTML = '';
+      s.forEach(c=>{
+        const cv = c.val();
+        const div = document.createElement('div'); div.className='comment';
+        div.innerHTML = `<strong>${escapeHtml(cv.userName||'')}</strong> ${escapeHtml(cv.text||'')}`;
+        commentsList.appendChild(div);
+      });
+    });
+
+    likeBtn.onclick = () => toggleLike(p.id);
+    commentToggle.onclick = ()=> commentsDiv.style.display = commentsDiv.style.display === 'none' ? '' : 'none';
+
+    return el;
+  }
+
+  function toggleLike(postId){
+    if (!currentUser) return alert('Inicie sessão');
+    const likeRef = db.ref('posts/' + postId + '/likes/' + currentUser.uid);
+    likeRef.once('value').then(s=>{
+      if (s.exists()) likeRef.remove();
+      else likeRef.set(true);
+    });
+  }
+
+  function addComment(postId, text){
+    if (!currentUser) return alert('Inicie sessão');
+    if (!text || !text.trim()) return;
+    const comment = {
+      uid: currentUser.uid,
+      userName: (document.getElementById('user-name').textContent)||currentUser.email,
+      text: text.trim(),
+      timestamp: Date.now()
     };
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.database();
-    const auth = firebase.auth();
+    db.ref('posts/' + postId + '/comments').push(comment);
+  }
 
-    let tipo = 'publico';
-    let codigoSalaPrivada = null;
-    let ultimaChave = null;
-    let usuarioNome = '';
+  // small helpers
+  function escapeHtml(s){ if(!s) return ''; return String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
-    // Preencher nome do usuário autenticado
-    auth.onAuthStateChanged(user => {
-      if (user) {
-        db.ref('users/' + user.uid + '/name').once('value').then(snapshot => {
-          usuarioNome = snapshot.val() || user.email;
-          document.getElementById('usuario-nome').textContent = usuarioNome;
-          document.getElementById('usuario').value = usuarioNome;
-          carregarHistoricoSalas(); // <-- aqui!
-        });
-      } else {
-        window.location.href = "login/index.html";
-      }
+  // suggestions (simple recent users)
+  async function loadSuggestions(){
+    const s = await db.ref('users').limitToLast(10).once('value');
+    const el = document.getElementById('suggestions'); el.innerHTML='';
+    s.forEach(child=>{
+      const u = child.val();
+      const div = document.createElement('div');
+      const uname = u.username || u.name || 'user';
+      div.innerHTML = `<a href="/users/${encodeURIComponent(uname)}">${escapeHtml(u.name || uname)}</a>`;
+      el.appendChild(div);
     });
-
-    function logout() {
-      auth.signOut();
-      window.location.href = "login/index.html";
-    }
-
-    // Botões de seleção de chat
-    function mudarTipo(novoTipo, identificador) {
-      tipo = novoTipo;
-      document.getElementById('btn-publico').classList.remove('active');
-      document.getElementById('btn-privado').classList.remove('active');
-      document.getElementById('btn-pessoal').classList.remove('active');
-      document.getElementById('sala-info').textContent = '';
-      if (tipo === 'privado') {
-        codigoSalaPrivada = identificador || prompt("Digite o código da sala privada:");
-        if (codigoSalaPrivada) {
-          document.getElementById('sala-info').textContent = "Sala privada: " + codigoSalaPrivada;
-          salvarSalaNoHistorico(codigoSalaPrivada);
-          adicionarAoHistorico('privado', codigoSalaPrivada, 'Sala privada: ' + codigoSalaPrivada); // Adiciona ao histórico
-        } else {
-          tipo = 'publico';
-          codigoSalaPrivada = null;
-          document.getElementById('btn-publico').classList.add('active');
-          alert("Código inválido. Voltando ao chat público.");
-        }
-      } else if (tipo === 'pessoal') {
-        window.usuarioPessoal = identificador || prompt("Com quem deseja conversar?");
-        if (window.usuarioPessoal) {
-          document.getElementById('sala-info').textContent = "Conversa pessoal com: " + window.usuarioPessoal;
-          adicionarAoHistorico('pessoal', window.usuarioPessoal, 'Pessoal: ' + window.usuarioPessoal); // Adiciona ao histórico
-        } else {
-          tipo = 'publico';
-          document.getElementById('btn-publico').classList.add('active');
-          alert("Nome inválido. Voltando ao chat público.");
-          document.getElementById('sala-info').textContent = "Chat público";
-        }
-      } else {
-        codigoSalaPrivada = null;
-        document.getElementById('btn-publico').classList.add('active');
-        document.getElementById('sala-info').textContent = "Chat público";
-      }
-      carregarMensagens();
-    }
-
-    // Notificações
-    document.addEventListener('DOMContentLoaded', function() {
-      if ("Notification" in window) {
-        if (Notification.permission === "default") {
-          Notification.requestPermission();
-        }
-      }
-      document.getElementById('sala-info').textContent = "Chat público";
-    });
-
-    function mostrarNotificacao(titulo, corpo) {
-      if (Notification.permission === "granted") {
-        new Notification(titulo, { body: corpo });
-      }
-    }
-
-    function carregarMensagens() {
-      db.ref('mensagens').off();
-      db.ref('mensagens').on('value', snapshot => {
-        const mensagens = snapshot.val() || {};
-        const chatDiv = document.getElementById('chat');
-        chatDiv.innerHTML = '';
-        let chaves = Object.keys(mensagens);
-        const usuarioAtual = usuarioNome || document.getElementById('usuario').value || 'Anônimo';
-        let historicoPessoal = [];
-        chaves.filter(k => {
-          const m = mensagens[k];
-          if (tipo === 'publico') return m.tipo === 'publico';
-          if (tipo === 'privado') return m.tipo === 'privado' && m.sala === codigoSalaPrivada;
-          if (tipo === 'pessoal') {
-            return (
-              m.tipo === 'pessoal' &&
-              ((m.usuario === usuarioAtual && m.destinatario === window.usuarioPessoal) ||
-               (m.usuario === window.usuarioPessoal && m.destinatario === usuarioAtual))
-            );
-          }
-          return false;
-        }).forEach(k => {
-          const m = mensagens[k];
-          const minhaMsg = m.usuario === usuarioAtual ? 'minha-msg' : '';
-          const hora = m.timestamp ? new Date(m.timestamp).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : '';
-          chatDiv.innerHTML += `<div class="msg ${m.tipo} ${minhaMsg}"><strong>${m.usuario}</strong> <span style="color:#aaa;font-size:12px;">${hora}</span>: ${m.msg}</div>`;
-          // Salvar no histórico pessoal se for minha mensagem
-          if (m.usuario === usuarioAtual) {
-            historicoPessoal.push({ msg: m.msg, hora });
-          }
-        });
-
-        // Atualiza histórico pessoal na sidebar e no banco
-        atualizarHistoricoSidebar(historicoPessoal);
-
-        // Notificar se chegou mensagem nova da sala correta e de outro usuário
-        if (chaves.length > 0) {
-          const ultimaKey = chaves[chaves.length - 1];
-          const ultimaMsg = mensagens[ultimaKey];
-          const mesmaSala =
-            (tipo === 'publico' && ultimaMsg.tipo === 'publico') ||
-            (tipo === 'privado' && ultimaMsg.tipo === 'privado' && ultimaMsg.sala === codigoSalaPrivada) ||
-            (tipo === 'pessoal' && ultimaMsg.usuario === usuarioAtual);
-
-          if (
-            ultimaChave !== ultimaKey &&
-            ultimaMsg.usuario !== usuarioAtual &&
-            mesmaSala
-          ) {
-            mostrarNotificacao(ultimaMsg.usuario, ultimaMsg.msg);
-          }
-          ultimaChave = ultimaKey;
-        }
-        // Scroll automático para a última mensagem
-        chatDiv.scrollTop = chatDiv.scrollHeight;
-      });
-    }
-
-    function adicionarAoHistorico(tipo, identificador, nomeExibicao) {
-      const user = auth.currentUser;
-      if (!user) return;
-      const ref = db.ref('users/' + user.uid + '/historicoSalas');
-      ref.once('value').then(snapshot => {
-        let historico = snapshot.val() || [];
-        // Remove duplicados
-        historico = historico.filter(item => !(item.tipo === tipo && item.id === identificador));
-        historico.unshift({ tipo, id: identificador, nome: nomeExibicao, data: Date.now() });
-        if (historico.length > 20) historico = historico.slice(0, 20);
-        ref.set(historico);
-        atualizarHistoricoSidebar(historico);
-      });
-    }
-
-    // Exemplo de chamada ao entrar numa sala/conversa:
-    if (tipo === 'privado') {
-      adicionarAoHistorico('privado', codigoSalaPrivada, 'Sala privada: ' + codigoSalaPrivada);
-    }
-    if (tipo === 'pessoal') {
-      adicionarAoHistorico('pessoal', window.usuarioPessoal, 'Pessoal: ' + window.usuarioPessoal);
-    }
-
-    // Para mostrar na sidebar:
-    function carregarHistoricoSalas() {
-      const user = auth.currentUser;
-      if (!user) return;
-      db.ref('users/' + user.uid + '/historicoSalas').once('value').then(snapshot => {
-        const historico = snapshot.val() || [];
-        atualizarHistoricoSidebar(historico);
-      });
-    }
-
-    function atualizarHistoricoSidebar(historico) {
-      const list = document.getElementById('historico-list');
-      list.innerHTML = '';
-      if (!historico.length) {
-        list.innerHTML = '<div style="color:#aaa;text-align:center;">Nenhuma sala/conversa</div>';
-        return;
-      }
-      historico.forEach(item => {
-        const div = document.createElement('div');
-        div.className = 'historico-item';
-        div.textContent = item.nome || (item.tipo === 'privado' ? `Sala privada: ${item.id}` : `Pessoal: ${item.id}`);
-        div.onclick = () => {
-          if (item.tipo === 'privado') mudarTipo('privado', item.id);
-          if (item.tipo === 'pessoal') mudarTipo('pessoal', item.id);
-        };
-        list.appendChild(div);
-      });
-    }
-
-    function salvarHistoricoUsuario(historico) {
-      const user = auth.currentUser;
-      if (user) {
-        db.ref('users/' + user.uid + '/historico').set(historico.slice(-20));
-      }
-    }
-
-    function carregarHistoricoUsuario() {
-      const user = auth.currentUser;
-      if (user) {
-        db.ref('users/' + user.uid + '/historico').once('value').then(snapshot => {
-          const historico = snapshot.val() || [];
-          atualizarHistoricoSidebar(historico);
-        });
-      }
-    }
-
-    // Palavras proibidas
-    const proibidas = ["foda-se", "filho da puta", "merda", "caralho", "puta"];
-
-    // Enviar mensagem
-    document.getElementById('enviar').onclick = function() {
-      const usuario = usuarioNome || document.getElementById('usuario').value || 'Anônimo';
-      const msg = document.getElementById('mensagem').value.trim();
-      if (!msg) return;
-
-      // Checagem de palavras proibidas
-      if (proibidas.some(p => msg.toLowerCase().includes(p))) {
-        alert("Mensagem contém palavras proibidas!");
-        document.getElementById('mensagem').value = '';
-        return;
-      }
-
-      if (tipo === 'pessoal') {
-        if (!window.usuarioPessoal) {
-          alert("Selecione um usuário para conversar.");
-          return;
-        }
-        db.ref('mensagens').push({
-          usuario,
-          msg,
-          tipo,
-          destinatario: window.usuarioPessoal,
-          timestamp: Date.now()
-        });
-      } else {
-        db.ref('mensagens').push({
-          usuario,
-          msg,
-          tipo,
-          sala: codigoSalaPrivada,
-          timestamp: Date.now()
-        });
-      }
-      document.getElementById('mensagem').value = '';
-    };
-
-    // Enviar mensagem ao pressionar Enter
-    document.getElementById('mensagem').addEventListener('keydown', function(e) {
-      if (e.key === 'Enter') {
-        document.getElementById('enviar').click();
-      }
-    });
-
-    // Funções para histórico de salas privadas
-    function salvarSalaNoHistorico(codigo) {
-      if (!codigo) return;
-      let salas = JSON.parse(localStorage.getItem('salasHistorico') || '[]');
-      if (!salas.includes(codigo)) {
-        salas.unshift(codigo);
-        if (salas.length > 10) salas = salas.slice(0, 10); // Limite de 10 salas
-        localStorage.setItem('salasHistorico', JSON.stringify(salas));
-      }
-      // mostrarSalasHistorico(); // opcional
-    }
-
-    // Chame ao carregar a página
-    document.addEventListener('DOMContentLoaded', function() {
-      carregarMensagens();
-    });
-  </script>
+  }
+</script>
 </body>
 </html>

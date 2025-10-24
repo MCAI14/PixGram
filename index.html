@@ -20,9 +20,34 @@
     .btn{background:#007bff;color:#fff;border:none;padding:8px 12px;border-radius:6px;cursor:pointer}
   </style>
 
+<<<<<<< HEAD
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+=======
+      // Só mostra o site se estiver autenticado
+      auth.onAuthStateChanged(user => {
+        if (user) {
+          // Busca o nome do utilizador no database
+          db.ref('users/' + user.uid + '/name').once('value').then(snapshot => {
+            const nome = snapshot.val() || user.email;
+            document.getElementById('user-nome').textContent = nome;
+          });
+          document.getElementById('main-layout').style.display = '';
+        } else {
+          window.location.href = "PixelGram/login/index.html";
+        }
+      });
+
+      // Logout
+      window.addEventListener('DOMContentLoaded', function() {
+        document.getElementById('logout-btn').onclick = function(e) {
+          e.preventDefault();
+          auth.signOut();
+        };
+      });
+    </script>
+>>>>>>> parent of 9768400 ([Atualização de perfis])
 </head>
 <body>
   <div class="main" id="main-layout" style="display:none">

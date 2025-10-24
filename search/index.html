@@ -1,6 +1,0 @@
-// Exemplo: pesquisar utilizadores por nome
-function pesquisarUtilizadores(nome) {
-  firebase.database().ref('users').orderByChild('name').startAt(nome).endAt(nome+"\uf8ff").once('value').then(snap => {
-    // Mostre resultados
-  });
-}

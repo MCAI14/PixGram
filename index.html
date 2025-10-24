@@ -6,18 +6,13 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <style>
     body{font-family:Arial,Helvetica,sans-serif;margin:0;background:#fafafa;color:#222}
-    .main{max-width:1000px;margin:24px auto;display:flex;gap:20px;align-items:flex-start}
-    .feed{flex:1}
+    .main{max-width:900px;margin:24px auto;padding:12px}
     .post{background:#fff;border-radius:10px;padding:12px;margin-bottom:16px;box-shadow:0 2px 8px rgba(0,0,0,0.03)}
+    .post img, .post video{width:100%;border-radius:8px;max-height:480px;object-fit:cover}
     .post-header{display:flex;align-items:center;gap:12px;margin-bottom:8px}
-    .avatar{width:44px;height:44px;border-radius:50%;background:#ddd}
-    .post-media{width:100%;max-height:480px;object-fit:cover;border-radius:8px;margin:8px 0}
-    .actions{display:flex;gap:10px;color:#333;margin-top:8px}
-    .comments{margin-top:10px}
-    .comment{font-size:14px;margin-bottom:6px}
-    .create-post{background:#fff;padding:12px;border-radius:10px;margin-bottom:16px}
-    .create-post input[type="text"]{width:100%;padding:8px;border:1px solid #ddd;border-radius:6px;margin-top:8px}
-    .btn{background:#007bff;color:#fff;border:none;padding:8px 12px;border-radius:6px;cursor:pointer}
+    .avatar{width:44px;height:44px;border-radius:50%;background:#ddd;flex:0 0 44px}
+    .meta{font-size:13px;color:#666;margin-top:8px}
+    .btn{background:#007bff;color:#fff;border:none;padding:6px 10px;border-radius:6px;cursor:pointer}
   </style>
 
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
@@ -25,33 +20,12 @@
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
 </head>
 <body>
-  <div class="main" id="main-layout" style="display:none">
-    <main class="feed">
-      <div class="create-post" id="create-post-area" style="display:none">
-        <div><strong>Nova publicação</strong></div>
-        <input type="file" id="media" accept="image/*,video/*" />
-        <input type="text" id="caption" placeholder="Escreve uma legenda..." />
-        <div style="margin-top:8px"><button class="btn" id="publish-btn">Publicar</button></div>
-        <div id="create-info" style="color:#27ae60;margin-top:8px"></div>
-      </div>
-
-      <section id="feed"></section>
-    </main>
-
-    <aside style="width:260px">
-      <div style="background:#fff;padding:12px;border-radius:10px;margin-bottom:16px">
-        <div style="display:flex;justify-content:space-between;align-items:center">
-          <strong id="user-name">Utilizador</strong>
-          <button id="logout-btn" style="background:#e74c3c;color:#fff;border:none;padding:6px 10px;border-radius:6px;cursor:pointer">Sair</button>
-        </div>
-      </div>
-
-      <div style="background:#fff;padding:12px;border-radius:10px">
-        <div style="font-weight:bold;margin-bottom:8px">Sugestões</div>
-        <div id="suggestions">—</div>
-      </div>
-    </aside>
+  <div class="main" id="main" style="display:none">
+    <h2>Feed</h2>
+    <div id="feed"></div>
   </div>
+
+  <div id="loading" style="text-align:center;padding:40px">A carregar…</div>
 
 <script>
   // Firebase config
@@ -69,194 +43,78 @@
   const auth = firebase.auth();
   const db = firebase.database();
 
-  // Cloudinary config (you provided)
-  const CLOUDINARY_URL = 'https://api.cloudinary.com/v1_1/dg5zjs1qh/upload';
-  const CLOUDINARY_PRESET = 'pixelgram_unsigned';
+  // util
+  function escapeHtml(s){ if(!s) return ''; return String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
   let currentUser = null;
-  auth.onAuthStateChanged(async user => {
-    if (!user) return window.location.href = "login/index.html";
-    currentUser = user;
-    // fetch display name from DB (we store username in users/{uid}/name)
-    const snap = await db.ref('users/' + user.uid + '/name').once('value');
-    const name = snap.val() || user.email || 'Utilizador';
-    document.getElementById('user-name').textContent = name;
-    document.getElementById('main-layout').style.display = '';
-    document.getElementById('create-post-area').style.display = '';
+
+  auth.onAuthStateChanged(u=>{
+    currentUser = u;
+    document.getElementById('main').style.display = u ? '' : 'none';
+    if (!u) {
+      // not logged: still show feed (optional). If you want require login, redirect to login page:
+      // window.location.href = "login/index.html";
+    }
     initFeed();
-    loadSuggestions();
   });
 
-  document.getElementById('logout-btn').onclick = () => auth.signOut().then(()=>window.location.href='login/index.html');
-
-  // Publish: upload to Cloudinary then create DB post
-  document.getElementById('publish-btn').onclick = async () => {
-    const fileEl = document.getElementById('media');
-    const caption = document.getElementById('caption').value.trim();
-    if (!fileEl.files[0]) return alert('Escolha uma imagem ou vídeo.');
-    const file = fileEl.files[0];
-
-    document.getElementById('create-info').textContent = 'A carregar...';
-
-    const fd = new FormData();
-    fd.append('file', file);
-    fd.append('upload_preset', CLOUDINARY_PRESET);
-
-    try {
-      const res = await fetch(CLOUDINARY_URL, { method:'POST', body:fd });
-      const data = await res.json();
-      if (!data.secure_url) throw new Error('Upload falhou');
-      const mediaUrl = data.secure_url;
-      const mediaType = file.type.startsWith('image/') ? 'image' : 'video';
-      const post = {
-        uid: currentUser.uid,
-        userName: (await db.ref('users/' + currentUser.uid + '/name').once('value')).val() || currentUser.email,
-        avatar: '', // optional: store avatar url in users/{uid}/avatar
-        mediaUrl,
-        mediaType,
-        caption,
-        timestamp: Date.now()
-      };
-      const postRef = await db.ref('posts').push(post);
-      document.getElementById('create-info').textContent = 'Publicado com sucesso!';
-      fileEl.value = ''; document.getElementById('caption').value = '';
-      // feed updates automatically by listener
-    } catch(err) {
-      console.error(err);
-      document.getElementById('create-info').textContent = 'Erro ao publicar.';
-    }
-    setTimeout(()=>document.getElementById('create-info').textContent='',2000);
-  };
-
-  // Feed: realtime listener (last 50 posts)
-  let postsListener = null;
+  // listen posts and render
+  let postsRef = null;
   function initFeed(){
-    if (postsListener) db.ref('posts').off('value', postsListener);
-    postsListener = db.ref('posts').orderByChild('timestamp').limitToLast(50);
-    postsListener.on('value', snap => {
+    if (postsRef) postsRef.off();
+    postsRef = db.ref('posts').orderByChild('timestamp').limitToLast(100);
+    postsRef.on('value', snap=>{
       const feed = document.getElementById('feed');
       feed.innerHTML = '';
-      const posts = [];
-      snap.forEach(child => posts.push({ id: child.key, ...child.val() }));
-      posts.sort((a,b)=>b.timestamp - a.timestamp);
-      posts.forEach(p => feed.appendChild(renderPost(p)));
+      const arr = [];
+      snap.forEach(ch => arr.push({ id: ch.key, ...ch.val() }));
+      arr.sort((a,b)=> (b.timestamp||0) - (a.timestamp||0));
+      if (!arr.length) feed.innerHTML = '<div style="padding:20px;color:#777;background:#fff;border-radius:8px">Sem publicações</div>';
+      arr.forEach(p => feed.appendChild(renderPost(p)));
+      document.getElementById('loading').style.display = 'none';
+    }, err=>{
+      console.error('Erro ao ler posts:', err);
+      document.getElementById('loading').innerText = 'Erro ao carregar feed.';
     });
   }
 
   function renderPost(p){
     const el = document.createElement('div');
     el.className = 'post';
-    const time = new Date(p.timestamp).toLocaleString();
-    const likeCountSpan = document.createElement('span');
-
-    // header
+    const time = p.timestamp ? new Date(p.timestamp).toLocaleString() : '';
     el.innerHTML = `
       <div class="post-header">
         <div class="avatar"></div>
         <div>
-          <div style="font-weight:bold">${escapeHtml(p.userName||'')}</div>
-          <div style="font-size:12px;color:#888">${time}</div>
+          <div style="font-weight:bold">${escapeHtml(p.userName || p.uid || 'Anónimo')}</div>
+          <div style="font-size:12px;color:#888">${escapeHtml(time)}</div>
         </div>
       </div>
     `;
-
-    // media
     if (p.mediaType === 'video') {
-      const vid = document.createElement('video');
-      vid.controls = true; vid.className = 'post-media'; vid.src = p.mediaUrl;
-      el.appendChild(vid);
-    } else {
-      const img = document.createElement('img');
-      img.src = p.mediaUrl; img.className = 'post-media';
-      el.appendChild(img);
+      const v = document.createElement('video'); v.controls = true; v.src = p.mediaUrl; v.className=''; v.style.width='100%'; el.appendChild(v);
+    } else if (p.mediaUrl) {
+      const img = document.createElement('img'); img.src = p.mediaUrl; el.appendChild(img);
     }
+    const cap = document.createElement('div'); cap.className='meta'; cap.innerHTML = `<strong>${escapeHtml(p.userName||'')}</strong> ${escapeHtml(p.caption||'')}`; el.appendChild(cap);
 
-    // caption
-    const caption = document.createElement('div');
-    caption.innerHTML = `<strong>${escapeHtml(p.userName||'')}</strong> ${escapeHtml(p.caption||'')}`;
-    el.appendChild(caption);
-
-    // actions
-    const actions = document.createElement('div'); actions.className='actions';
-    const likeBtn = document.createElement('button'); likeBtn.className='btn'; likeBtn.style.background='#fff'; likeBtn.style.color='#333';
-    likeBtn.textContent = '♡ Gostar';
-    actions.appendChild(likeBtn);
-    actions.appendChild(likeCountSpan);
-    const commentToggle = document.createElement('button'); commentToggle.className='btn'; commentToggle.style.background='#fff'; commentToggle.style.color='#333';
-    commentToggle.textContent = '💬 Comentários';
-    actions.appendChild(commentToggle);
+    // simple likes/comments counts
+    const actions = document.createElement('div'); actions.style.marginTop = '8px'; 
+    const likeSpan = document.createElement('span'); likeSpan.style.marginRight='12px';
+    actions.appendChild(likeSpan);
+    const commLink = document.createElement('a'); commLink.href='#'; commLink.textContent = 'Comentários'; commLink.onclick = (e)=>{ e.preventDefault(); alert('Abrir comentários (implemente se desejar)'); };
+    actions.appendChild(commLink);
     el.appendChild(actions);
 
-    // comments area
-    const commentsDiv = document.createElement('div'); commentsDiv.className='comments'; commentsDiv.style.display='none';
-    const commentsList = document.createElement('div'); commentsList.id = 'comments-'+p.id;
-    const commentForm = document.createElement('form');
-    commentForm.onsubmit = (e)=>{ e.preventDefault(); addComment(p.id, commentForm.input.value); commentForm.input.value=''; };
-    commentForm.innerHTML = `<input type="text" name="input" placeholder="Adicione um comentário..." style="padding:6px;border:1px solid #ddd;border-radius:6px;width:80%" /> <button class="btn" style="padding:6px 8px">Publicar</button>`;
-    commentsDiv.appendChild(commentsList); commentsDiv.appendChild(commentForm); el.appendChild(commentsDiv);
-
-    // likes listener
+    // realtime likes counter
     const likesRef = db.ref('posts/' + p.id + '/likes');
     likesRef.on('value', s=>{
       const likes = s.val() || {};
       const count = Object.keys(likes).length;
-      likeCountSpan.textContent = ' ' + count + ' gostos';
-      if (currentUser && likes[currentUser.uid]) likeBtn.textContent = '♥ Gostado'; else likeBtn.textContent = '♡ Gostar';
+      likeSpan.textContent = `❤️ ${count}`;
     });
-
-    // comment listener
-    const commentsRef = db.ref('posts/' + p.id + '/comments').orderByChild('timestamp');
-    commentsRef.on('value', s=>{
-      commentsList.innerHTML = '';
-      s.forEach(c=>{
-        const cv = c.val();
-        const div = document.createElement('div'); div.className='comment';
-        div.innerHTML = `<strong>${escapeHtml(cv.userName||'')}</strong> ${escapeHtml(cv.text||'')}`;
-        commentsList.appendChild(div);
-      });
-    });
-
-    likeBtn.onclick = () => toggleLike(p.id);
-    commentToggle.onclick = ()=> commentsDiv.style.display = commentsDiv.style.display === 'none' ? '' : 'none';
 
     return el;
-  }
-
-  function toggleLike(postId){
-    if (!currentUser) return alert('Inicie sessão');
-    const likeRef = db.ref('posts/' + postId + '/likes/' + currentUser.uid);
-    likeRef.once('value').then(s=>{
-      if (s.exists()) likeRef.remove();
-      else likeRef.set(true);
-    });
-  }
-
-  function addComment(postId, text){
-    if (!currentUser) return alert('Inicie sessão');
-    if (!text || !text.trim()) return;
-    const comment = {
-      uid: currentUser.uid,
-      userName: (document.getElementById('user-name').textContent)||currentUser.email,
-      text: text.trim(),
-      timestamp: Date.now()
-    };
-    db.ref('posts/' + postId + '/comments').push(comment);
-  }
-
-  // small helpers
-  function escapeHtml(s){ if(!s) return ''; return String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
-
-  // suggestions (simple recent users)
-  async function loadSuggestions(){
-    const s = await db.ref('users').limitToLast(10).once('value');
-    const el = document.getElementById('suggestions'); el.innerHTML='';
-    s.forEach(child=>{
-      const u = child.val();
-      const div = document.createElement('div');
-      const uname = u.username || u.name || 'user';
-      div.innerHTML = `<a href="/users/${encodeURIComponent(uname)}">${escapeHtml(u.name || uname)}</a>`;
-      el.appendChild(div);
-    });
   }
 </script>
 </body>

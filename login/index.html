@@ -56,14 +56,8 @@
       <button class="secondary" onclick="showRegister()">Criar Conta</button>
       <div id="login-error" class="error"></div>
     </div>
-<<<<<<< HEAD
-
-    <div id="register-form" style="display:none">
-      <input type="text" id="register-username" placeholder="Nome de utilizador (único)" />
-=======
     <div id="register-form" style="display:none;">
       <input type="text" id="register-name" placeholder="Nome" />
->>>>>>> parent of 9768400 ([Atualização de perfis])
       <input type="email" id="register-email" placeholder="Email" />
       <input type="password" id="register-password" placeholder="Senha" />
       <button onclick="startRegister()">Inscrever</button>
@@ -132,25 +126,6 @@
       localStorage.removeItem('pixelgram_user_name');
     }
 
-<<<<<<< HEAD
-    // iniciar registo: valida username localmente e chama registerUser
-    async function startRegister(){
-      clearErrors();
-      const username = (document.getElementById('register-username').value || '').trim().toLowerCase();
-      const email = (document.getElementById('register-email').value || '').trim();
-      const password = document.getElementById('register-password').value;
-      if (!username) { document.getElementById('register-error').textContent = 'Escolha um nome de utilizador.'; return; }
-      if (!email || !password) { document.getElementById('register-error').textContent = 'Preencha email e senha.'; return; }
-      // verifica disponibilidade e cria conta
-      try {
-        const snap = await db.ref('usernames/' + username).once('value');
-        if (snap.exists()) { document.getElementById('register-error').textContent = 'Nome de utilizador já existe.'; return; }
-        await registerUser(email, password, username);
-      } catch(err){
-        document.getElementById('register-error').textContent = 'Erro: ' + (err.message || err);
-        console.error(err);
-      }
-=======
     function showRegister() {
       document.getElementById('login-form').style.display = 'none';
       document.getElementById('register-form').style.display = '';
@@ -180,7 +155,6 @@
         .catch(e => {
           document.getElementById('register-error').textContent = 'Erro: ' + e.message;
         });
->>>>>>> parent of 9768400 ([Atualização de perfis])
     }
 
     // cria conta e obriga a completar perfil

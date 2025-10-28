@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="utf-8" />
+  <title>PixelGram - Feed</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <style>
+    body{font-family:Arial,Helvetica,sans-serif;margin:0;background:#fafafa;color:#222}
+    .main{max-width:900px;margin:24px auto;padding:12px}
+    .post{background:#fff;border-radius:10px;padding:12px;margin-bottom:16px;box-shadow:0 2px 8px rgba(0,0,0,0.03)}
+    .post img, .post video{width:100%;border-radius:8px;max-height:480px;object-fit:cover}
+    .post-header{display:flex;align-items:center;gap:12px;margin-bottom:8px}
+    .avatar{width:44px;height:44px;border-radius:50%;background:#ddd;flex:0 0 44px}
+    .meta{font-size:13px;color:#666;margin-top:8px}
+    .btn{background:#007bff;color:#fff;border:none;padding:6px 10px;border-radius:6px;cursor:pointer;text-decoration:none;display:inline-block}
+    .create-link{margin-bottom:12px;display:flex;justify-content:flex-end}
+  </style>
+
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+</head>
+<body>
+  <div class="main" id="main" style="display:none">
+    <div class="create-link" id="create-link-area" style="display:none">
+      <a class="btn" id="create-link" href="create/index.html">➕ Criar publicação</a>
+    </div>
+
+    <h2>Feed</h2>
+    <div id="feed"></div>
+  </div>
+
+  <div id="loading" style="text-align:center;padding:40px">A carregar…</div>
+
+<script>
+  // Firebase config
+  const firebaseConfig = {
+    apiKey: "AIzaSyBEesXKUPQibsTXT48pQmL0yfOEHNwE85I",
+    authDomain: "pixelgram-fd1bf.firebaseapp.com",
+    databaseURL: "https://pixelgram-fd1bf-default-rtdb.firebaseio.com",
+    projectId: "pixelgram-fd1bf",
+    storageBucket: "pixelgram-fd1bf.firebasestorage.app",
+    messagingSenderId: "526005169331",
+    appId: "1:526005169331:web:7717c5a46a653e1ddc14c6",
+    measurementId: "G-B97XPZM2FN"
+  };
+  firebase.initializeApp(firebaseConfig);
+  const auth = firebase.auth();
+  const db = firebase.database();
+
+  // util
+  function escapeHtml(s){ if(!s) return ''; return String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+  let currentUser = null;
+
+  auth.onAuthStateChanged(u=>{
+    currentUser = u;
+    document.getElementById('main').style.display = '';
+    document.getElementById('create-link-area').style.display = u ? '' : 'none';
+    initFeed();
+  });
+
+  // listen posts and render (child events)
+  let postsRef = null;
+  const postsMap = {};
+
+  function initFeed(){
+    if (postsRef) {
+      postsRef.off('child_added');
+      postsRef.off('child_changed');
+      postsRef.off('child_removed');
+    }
+    postsRef = db.ref('posts');
+    postsRef.on('child_added', snap => { postsMap[snap.key] = { id: snap.key, ...(snap.val()||{}) }; renderAllPosts(); });
+    postsRef.on('child_changed', snap => { postsMap[snap.key] = { id: snap.key, ...(snap.val()||{}) }; renderAllPosts(); });
+    postsRef.on('child_removed', snap => { delete postsMap[snap.key]; renderAllPosts(); });
+  }
+
+  function renderAllPosts(){
+    const feed = document.getElementById('feed');
+    const arr = Object.values(postsMap);
+    arr.sort((a,b)=> (b.timestamp || 0) - (a.timestamp || 0));
+    feed.innerHTML = '';
+    if (!arr.length) {
+      feed.innerHTML = '<div style="padding:20px;color:#777;background:#fff;border-radius:8px">Sem publicações</div>';
+    } else {
+      arr.forEach(p => feed.appendChild(renderPost(p)));
+    }
+    document.getElementById('loading').style.display = 'none';
+  }
+
+  function renderPost(p){
+    const el = document.createElement('div');
+    el.className = 'post';
+
+    const time = p.timestamp ? new Date(p.timestamp).toLocaleString() : '';
+    el.innerHTML = `
+      <div class="post-header">
+        <div class="avatar"></div>
+        <div>
+          <div style="font-weight:bold">${escapeHtml(p.userName || p.uid || 'Anónimo')}</div>
+          <div style="font-size:12px;color:#888">${escapeHtml(time)}</div>
+        </div>
+      </div>
+    `;
+
+    // Media
+    if (p.mediaType === 'video' && p.mediaUrl) {
+      const v = document.createElement('video');
+      v.controls = true;
+      v.src = p.mediaUrl;
+      v.style.width = '100%';
+      el.appendChild(v);
+    } else if (p.mediaUrl) {
+      const img = document.createElement('img');
+      img.src = p.mediaUrl;
+      el.appendChild(img);
+    }
+
+    // Caption / meta
+    const cap = document.createElement('div');
+    cap.className = 'meta';
+    cap.innerHTML = `<strong>${escapeHtml(p.userName||'')}</strong> ${escapeHtml(p.caption||'')}`;
+    el.appendChild(cap);
+
+    // Actions (likes, comments)
+    const actions = document.createElement('div');
+    actions.style.marginTop = '8px';
+
+    const likeSpan = document.createElement('span');
+    likeSpan.style.marginRight = '12px';
+    likeSpan.textContent = '❤️ 0';
+    actions.appendChild(likeSpan);
+
+    const commLink = document.createElement('a');
+    commLink.href = '#';
+    commLink.textContent = 'Comentários';
+    commLink.style.marginLeft = '8px';
+    commLink.onclick = (e)=>{ e.preventDefault(); alert('Abrir comentários (implemente se desejar)'); };
+    actions.appendChild(commLink);
+
+    el.appendChild(actions);
+
+    // Likes counter listener
+    try {
+      const likesRef = db.ref('posts/' + p.id + '/likes');
+      likesRef.on('value', s=>{
+        const likes = s.val() || {};
+        likeSpan.textContent = `❤️ ${Object.keys(likes).length}`;
+      });
+    } catch (err) {
+      console.error('Erro ao ligar likesRef:', err);
+    }
+
+    return el;
+  }
+</script>
+</body>
+</html>
